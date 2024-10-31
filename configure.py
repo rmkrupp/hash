@@ -48,8 +48,10 @@ parser.add_argument('--build-native',
 parser.add_argument('--disable-tool', action='append', default=[],
                     choices=[],
                     help='don\'t build a specific tool')
-parser.add_argument('--disable-argp', action='store_true',
-                    help='fall back to getopt for argument parsing')
+parser.add_argument('--enable-hash-statistics', action='store_true',
+                    help='compile with -DHASH_STATISTICS')
+#parser.add_argument('--disable-argp', action='store_true',
+#                    help='fall back to getopt for argument parsing')
 parser.add_argument('--disable-sanitize', action='store_true',
                     help='don\'t enable the sanitizer in debug mode')
 parser.add_argument('--force-version', metavar='STRING',
@@ -85,6 +87,9 @@ def enable_w64():
     w.variable(key = 'cflags', value = '$cflags -O2 -static -I/usr/x86_64-w64-mingw32/include')
     w.variable(key = 'ldflags', value = '$ldflags -L/usr/x86_64-w64-mingw32/lib')
     w.variable(key = 'defines', value = '$defines -DNDEBUG')
+
+def enable_hash_statistics():
+    w.variable(key = 'defines', value = '$defines -DHASH_STATISTICS')
 
 #
 # THE WRITER
@@ -199,6 +204,14 @@ else:
 w.newline()
 
 #
+# -DHASH_STATISTICS
+#
+if args.enable_hash_statistics:
+    w.comment('we were generated with --enable-hash-statistics, so do so')
+    enable_hash_statistics()
+    w.newline()
+
+#
 # CFLAGS/LDFLAGS OVERRIDES
 #
 
@@ -257,6 +270,7 @@ w.newline()
 #
 
 w.build('$builddir/hash.o', 'cc', 'src/hash.c')
+w.build('$builddir/util/strdup.o', 'cc', 'src/util/strdup.c')
 w.build('$builddir/test/test.o', 'cc', 'src/test/test.c')
 w.newline()
 
@@ -296,6 +310,7 @@ bin_target(
         name = 'test',
         inputs = [
             '$builddir/hash.o',
+            '$builddir/util/strdup.o',
             '$builddir/test/test.o'
         ],
         variables = [('libs', '')],
