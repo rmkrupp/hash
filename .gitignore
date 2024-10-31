@@ -1,0 +1,9 @@
+test
+test.exe
+build.ninja
+/out/
+__pycache__
+*.ignore
+*.ignore.*
+*.gen
+*.gen.*
