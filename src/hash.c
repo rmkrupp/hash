@@ -750,6 +750,7 @@ void hash_inputs_get_statistics(
     hash_inputs->statistics.capacity = hash_inputs->capacity;
     *statistics = hash_inputs->statistics;
 #else
+    (void)hash_inputs;
     *statistics = (struct hash_inputs_statistics) { };
 #endif /* HASH_STATISTICS */
 }
