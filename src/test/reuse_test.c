@@ -24,15 +24,6 @@
 #include <time.h>
 #include <stdlib.h>
 
-FILE * f = NULL;
-
-void dump_to_file(const char * key, size_t length, void ** ptr)
-{
-    (void)ptr;
-    (void)length;
-    fprintf(f, "%s\n", key);
-}
-
 int main(int argc, char ** argv)
 {
     (void)argc;
@@ -41,40 +32,19 @@ int main(int argc, char ** argv)
     srand(time(NULL));
 
     struct hash_inputs * hash_inputs = hash_inputs_create();
-    hash_inputs_add(hash_inputs, "foo", 3, NULL);
-    hash_inputs_add(hash_inputs, "bar", 3, NULL);
-    hash_inputs_add(hash_inputs, "donkey", 6, NULL);
-    hash_inputs_add(hash_inputs, "mineral", 7, NULL);
-    hash_inputs_add(hash_inputs, "toaster oven", 12, NULL);
 
-    size_t n = 10000;
-
-    size_t keep = rand() % n;
-    char * keep_s = NULL;
-
-    size_t length = 128;
-    char * s = malloc(length + 1);
-    s[length] = '\0';
-    for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < length; j++) {
-            s[j] = rand() % 256;
-            if (s[j] == '\n') s[j] = ' ';
-        }
-        hash_inputs_add_safe(hash_inputs, s, strlen(s), NULL);
-        if (i == keep) {
-            keep_s = strdup(s);
-        }
+    FILE * f = fopen("keys", "r");
+    char * buffer = malloc(1024);
+    while (fgets(buffer, 1024, f)) {
+        hash_inputs_add(hash_inputs, buffer, strlen(buffer) - 1, NULL);
     }
-    free(s);
+    fclose(f);
+    free(buffer);
 
     struct hash_inputs_statistics hash_inputs_statistics;
     hash_inputs_get_statistics(hash_inputs, &hash_inputs_statistics);
     printf("[instats] n_growths = %lu\n", hash_inputs_statistics.n_growths);
     printf("[instats] capacity = %lu\n", hash_inputs_statistics.capacity);
-
-    f = fopen("keys", "w");
-    hash_inputs_apply(hash_inputs, dump_to_file);
-    fclose(f);
 
     struct hash * hash = hash_create(hash_inputs);
     hash_inputs_destroy(hash_inputs);
@@ -86,7 +56,7 @@ int main(int argc, char ** argv)
 
     const struct hash_lookup_result * result1 = hash_lookup(hash, "mineral", 7);
     if (result1) {
-        printf("found result1\n");
+        printf("%s\n", result1->key);
     } else {
         printf("result1 is null\n");
     }
@@ -98,13 +68,15 @@ int main(int argc, char ** argv)
         printf("result2 is null\n");
     }
 
+    /*
     const struct hash_lookup_result * result3 = hash_lookup(hash, keep_s, strlen(keep_s));
     if (result3) {
-        printf("found result3\n");
+        printf("%s\n", result3->key);
     } else {
         printf("result3 is null\n");
     }
     free(keep_s);
+    */
 
     hash_destroy(hash);
 }

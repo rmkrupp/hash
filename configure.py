@@ -305,6 +305,8 @@ w.newline()
 w.build('$builddir/hash.o', 'cc', 'src/hash.c')
 w.build('$builddir/util/strdup.o', 'cc', 'src/util/strdup.c')
 w.build('$builddir/test/test.o', 'cc', 'src/test/test.c')
+w.build('$builddir/test/reuse_test.o', 'cc', 'src/test/reuse_test.c')
+
 w.newline()
 
 #
@@ -349,6 +351,19 @@ target(
         variables = [('libs', '')],
         is_disabled = 'test' in args.disable_tool,
         why_disabled = 'we were generated with --disable-tool=test',
+        targets = [all_targets, tools_targets]
+    )
+
+target(
+        name = 'reuse_test',
+        inputs = [
+            '$builddir/hash.o',
+            '$builddir/util/strdup.o',
+            '$builddir/test/reuse_test.o'
+        ],
+        variables = [('libs', '')],
+        is_disabled = 'reuse-test' in args.disable_tool,
+        why_disabled = 'we were generated with --disable-tool=reuse_test',
         targets = [all_targets, tools_targets]
     )
 
