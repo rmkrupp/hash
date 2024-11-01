@@ -607,13 +607,16 @@ const struct hash_lookup_result * hash_lookup(
 
     hash_function_result r1 = hash_function_hash(&hash->f1, key, length);
     hash_function_result r2 = hash_function_hash(&hash->f2, key, length);
-    hash_function_result v = hash->values[r1] + hash->values[r2];
+    hash_function_result i = hash->values[r1] + hash->values[r2];
 
-    assert(v >= 0);
-    v = v % hash->n_values;
+    assert(i >= 0);
+    i = i % hash->n_values;
 
-    assert(v < (hash_function_result)hash->keys.n_inputs);
-    struct hash_input * input = &hash->keys.inputs[v];
+    if ((size_t)i >= hash->keys.n_inputs) {
+        return NULL;
+    }
+    assert(i < (hash_function_result)hash->keys.n_inputs);
+    struct hash_input * input = &hash->keys.inputs[i];
 
     if (input->length != length) {
         return NULL;
