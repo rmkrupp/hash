@@ -317,6 +317,8 @@ static bool graph_resolve(struct graph * graph)
                     };
                 vertex_stack_length++;
 
+                assert((size_t)(hash_function_result)graph->n_vertices ==
+                        graph->n_vertices);
                 hash_function_result v =
                     (edge->value - vertex->value) %
                     (hash_function_result)graph->n_vertices;
@@ -480,7 +482,7 @@ static void hash_function_reset(
                     hash_iterations_growth_multiplier_divider;
 
                 if (n_vertices_next > n_vertices) {
-                    n_vertices_next = n_vertices;
+                    n_vertices = n_vertices_next;
                 } else {
                     n_vertices += 1;
                 }
@@ -610,6 +612,7 @@ const struct hash_lookup_result * hash_lookup(
     assert(v >= 0);
     v = v % hash->n_values;
 
+    assert(v < (hash_function_result)hash->keys.n_inputs);
     struct hash_input * input = &hash->keys.inputs[v];
 
     if (input->length != length) {
