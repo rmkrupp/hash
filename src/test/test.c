@@ -29,6 +29,8 @@ int main(int argc, char ** argv)
     (void)argc;
     (void)argv;
 
+    srand(time(NULL));
+
     struct hash_inputs * hash_inputs = hash_inputs_create();
     hash_inputs_add(hash_inputs, "foo", 3, NULL);
     hash_inputs_add(hash_inputs, "bar", 3, NULL);
@@ -36,14 +38,22 @@ int main(int argc, char ** argv)
     hash_inputs_add(hash_inputs, "mineral", 7, NULL);
     hash_inputs_add(hash_inputs, "toaster oven", 12, NULL);
 
-    size_t length = 8;
+    size_t n = 10000;
+
+    size_t keep = rand() % n;
+    char * keep_s = NULL;
+
+    size_t length = 128;
     char * s = malloc(length + 1);
     s[length] = '\0';
-    for (size_t i = 0; i < 100; i++) {
+    for (size_t i = 0; i < n; i++) {
         for (size_t j = 0; j < length; j++) {
             s[j] = 'a' + rand() % 26;
         }
         hash_inputs_add_safe(hash_inputs, s, strlen(s), NULL);
+        if (i == keep) {
+            keep_s = strdup(s);
+        }
     }
     free(s);
 
@@ -73,6 +83,14 @@ int main(int argc, char ** argv)
     } else {
         printf("result2 is null\n");
     }
+
+    const struct hash_lookup_result * result3 = hash_lookup(hash, keep_s, strlen(keep_s));
+    if (result3) {
+        printf("%s\n", result3->key);
+    } else {
+        printf("result3 is null\n");
+    }
+    free(keep_s);
 
     hash_destroy(hash);
 }
