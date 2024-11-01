@@ -40,26 +40,32 @@
 #endif /* HASH_NO_WARNINGS */
 
 /*
- * TODO: statistics
- *  - memory used
- *  - other stuff
- *
- * Based on these:
- *  - should there be a grow increment or pre-allocation of the edges?
- *  - what about vertex allocation? (I think that's fine, though.)
- *
- *  Make sure to get rid of printfs
+ * TODO for version 1.0:
+ *  - document statistics
+ *  - document tuning values
+ *  - grow stategies for edges
+ *  - should there be a grow increment for edges? (multiplicative realloc?)
+ *      (at least optionally?)
+ *  - Test de-pointerifying the hash functions
+ *  - should we do unsigned chars? does the hash handle embedded zero bytes
+ *    fine everywhere? (look for strdup/strndup and change)
+ *  - go over documentation one more time
  */
 
 /*
  * TUNING VALUES
  */
 
+#ifndef HASH_PREALLOC_EDGES
+#define HASH_PREALLOC_EDGES 4
+#endif /* HASH_PREALLOC_EDGES */
+
 constexpr size_t hash_inputs_grow_increment = 1;
 constexpr size_t hash_iterations_max_multiplier = 100;
 constexpr size_t hash_iterations_grow_every_n_trials = 5;
 constexpr size_t hash_iterations_growth_multiplier = 1075;
 constexpr size_t hash_iterations_growth_multiplier_divider = 1024;
+[[maybe_unused]] constexpr size_t hash_prealloc_edges = HASH_PREALLOC_EDGES;
 
 /*
  * TYPES
@@ -125,6 +131,10 @@ struct graph {
 
     struct vertex_stack_node * vertex_stack;
     size_t vertex_stack_capacity;
+
+#ifdef HASH_STATISTICS
+    struct hash_statistics statistics;
+#endif /* HASH_STATISTICS */
 };
 
 /* a vertex in the above graph */
@@ -134,7 +144,15 @@ struct vertex {
     struct edge * edges;
     size_t n_edges;
     size_t edge_capacity;
+#ifdef HASH_STATISTICS
+    size_t n_edges_max;
+#endif /* HASH_STATISTICS */
 };
+
+#ifdef HASH_STATISTICS
+constexpr size_t graph_vertex_statistics_extra =
+    sizeof(((struct vertex *)NULL)->n_edges_max);
+#endif /* HASH_STATISTICS */
 
 /* an edge in the above graph */
 struct edge {
@@ -156,6 +174,10 @@ struct vertex_stack_node {
         .vertex_stack = malloc(sizeof(*graph->vertex_stack)),
         .vertex_stack_capacity = 1
     };
+#ifdef HASH_STATISTICS
+    graph->statistics.total_memory_allocated += sizeof(*graph->vertex_stack);
+    graph->statistics.net_memory_allocated += sizeof(*graph->vertex_stack);
+#endif /* HASH_STATISTICS */
     return graph;
 }
 
@@ -181,11 +203,47 @@ static void graph_at_least(
 {
     assert(n_vertices >= graph->n_vertices);
 
+#ifdef HASH_STATISTICS
+    graph->statistics.reallocs_vertices++;
+    graph->statistics.realloc_amount_vertices +=
+        (sizeof(*graph->vertices) - graph_vertex_statistics_extra)
+         * graph->n_vertices;
+    graph->statistics.net_memory_allocated +=
+        (sizeof(*graph->vertices) - graph_vertex_statistics_extra)
+         * n_vertices -
+        (sizeof(*graph->vertices) - graph_vertex_statistics_extra)
+         * graph->n_vertices;
+    graph->statistics.total_memory_allocated +=
+        (sizeof(*graph->vertices) - graph_vertex_statistics_extra)
+        * n_vertices;
+#endif /* HASH_STATISTICS */
+
     graph->vertices = realloc(
             graph->vertices, sizeof(*graph->vertices) * n_vertices);
 
     for (size_t i = graph->n_vertices; i < n_vertices; i++) {
-        graph->vertices[i] = (struct vertex) { };
+        graph->vertices[i] = (struct vertex) {
+            /* pre-allocating edges here reduces the number of reallocs,
+             * which are otherwise quite high
+             * (even if only pre-allocating 4 to 12 edges per vertex),
+             * at the expense of using more memory, but ultimately this wasn't
+             * a big immediate performance gain. needs more testing.
+             *
+             * make it a tuneable
+             */
+#if HASH_PREALLOC_EDGES > 0
+            .edges = malloc(
+                    sizeof(*graph->vertices[i].edges) * hash_prealloc_edges),
+            .edge_capacity = hash_prealloc_edges
+#endif /* HASH_PREALLOC_EDGES */
+        };
+#ifdef HASH_STATISTICS
+        graph->statistics.edges_preallocated += hash_prealloc_edges;
+        graph->statistics.net_memory_allocated +=
+            sizeof(*graph->vertices[i].edges) * hash_prealloc_edges;
+        graph->statistics.total_memory_allocated +=
+            sizeof(*graph->vertices[i].edges) * hash_prealloc_edges;
+#endif /* HASH_STATISTICS */
     }
 
     graph->n_vertices = n_vertices;
@@ -200,6 +258,9 @@ static void graph_wipe(struct graph * graph) [[gnu::nonnull(1)]]
         graph->vertices[i] = (struct vertex) {
             .value = -1,
             .edges = graph->vertices[i].edges,
+#ifdef HASH_STATISTICS
+            .n_edges_max = graph->vertices[i].n_edges_max,
+#endif /* HASH_STATISTICS */
             .edge_capacity = graph->vertices[i].edge_capacity
         };
     }
@@ -224,16 +285,40 @@ static void graph_connect(
 
     assert(from->n_edges <= from->edge_capacity);
     if (from->n_edges == from->edge_capacity) {
+
+#ifdef HASH_STATISTICS
+        graph->statistics.reallocs_edges++;
+        graph->statistics.edges_allocated++;
+        graph->statistics.realloc_amount_edges +=
+            sizeof(*from->edges) * from->edge_capacity;
+        graph->statistics.net_memory_allocated +=
+            sizeof(*from->edges) * (from->edge_capacity + 1) -
+            sizeof(*from->edges) * from->edge_capacity;
+        graph->statistics.total_memory_allocated +=
+            sizeof(*from->edges) * (from->edge_capacity + 1);
+#endif /* HASH_STATISTICS */
+
+        // TODO grow rate?
         from->edges = realloc(
                 from->edges, sizeof(*from->edges) * (from->edge_capacity + 1));
         from->edge_capacity += 1;
     }
+
+#if HASH_PREALLOC_EDGES > 0
+    assert(from->edge_capacity >= hash_prealloc_edges);
+#endif /* HASH_PREALLOC_EDGES */
 
     from->edges[from->n_edges] = (struct edge) {
         .to = &graph->vertices[to_index],
         .value = edge_value
     };
     from->n_edges++;
+
+#ifdef HASH_STATISTICS
+    if (from->n_edges > from->n_edges_max) {
+        from->n_edges_max = from->n_edges;
+    }
+#endif /* HASH_STATISTICS */
 }
 
 /* create two edges, one each way, between the vertex at from_index and the
@@ -285,6 +370,10 @@ static bool graph_resolve(struct graph * graph)
 
             vertex->visited = true;
 
+#ifdef HASH_STATISTICS
+            graph->statistics.nodes_explored++;
+#endif /* HASH_STATISTICS */
+
             bool skip = true;
             for (size_t j = 0; j < vertex->n_edges; j++) {
                 struct edge * edge = &vertex->edges[j];
@@ -302,6 +391,18 @@ static bool graph_resolve(struct graph * graph)
 
                 assert(vertex_stack_length <= vertex_stack_capacity);
                 if (vertex_stack_length == vertex_stack_capacity) {
+
+#ifdef HASH_STATISTICS
+                    graph->statistics.reallocs_stack++;
+                    graph->statistics.realloc_amount_stack +=
+                        sizeof(*vertex_stack) * vertex_stack_capacity;
+                    graph->statistics.net_memory_allocated +=
+                        sizeof(*vertex_stack) * (vertex_stack_capacity + 1) -
+                        sizeof(*vertex_stack) * vertex_stack_capacity;
+                    graph->statistics.total_memory_allocated +=
+                        sizeof(*vertex_stack) * (vertex_stack_capacity + 1);
+#endif /* HASH_STATISTICS */
+
                     vertex_stack = realloc(
                             vertex_stack,
                             sizeof(*vertex_stack) * (vertex_stack_capacity + 1)
@@ -324,7 +425,7 @@ static bool graph_resolve(struct graph * graph)
                     (hash_function_result)graph->n_vertices;
 
                 if (v < 0) {
-                    v += graph->n_vertices;
+                    v += (hash_function_result)graph->n_vertices;
                 }
 
                 to->value = v;
@@ -358,7 +459,7 @@ static void hash_function_reset(
  *
  * calls rand() if more salt is needed
  */
-[[gnu::pure]] static hash_function_result hash_function_hash(
+static hash_function_result hash_function_hash(
         struct hash_function * hash_function,
         const char * key,
         size_t length
@@ -428,8 +529,11 @@ static void hash_function_reset(
 [[nodiscard]] struct hash * hash_create(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
 {
-
     size_t n_keys = hash_inputs->n_inputs;
+
+    if (n_keys == 0) {
+        return NULL;
+    }
 
     size_t n_vertices = n_keys + 1;
     size_t n_vertices_scaled = n_vertices *
@@ -438,7 +542,21 @@ static void hash_function_reset(
     struct graph * graph = graph_create();
     graph_at_least(graph, n_vertices);
 
-    struct hash_function f1 = {}, f2 = {};
+#ifdef HASH_STATISTICS
+    graph->statistics.graph_size = n_vertices;
+    graph->statistics.total_memory_allocated +=
+        sizeof(*graph) - sizeof(struct hash_statistics);
+    graph->statistics.net_memory_allocated +=
+        sizeof(*graph) - sizeof(struct hash_statistics);
+#endif /* HASH_STATISTICS */
+
+    //struct hash_function f1, f2;
+    //f1 = (struct hash_function) { };
+    //f2 = (struct hash_function) { };
+    struct hash_function * f1 = malloc(sizeof(*f1));
+    struct hash_function * f2 = malloc(sizeof(*f2));
+    *f1 = (struct hash_function) { };
+    *f2 = (struct hash_function) { };
 
     size_t iteration = 0;
     size_t iteration_max = hash_iterations_max_multiplier * n_vertices;
@@ -454,8 +572,10 @@ static void hash_function_reset(
                             iteration
                         );
 #endif /* HASH_NO_WARNINGS */
-                    free(f1.salt);
-                    free(f2.salt);
+                    free(f1->salt);
+                    free(f2->salt);
+                    free(f1);
+                    free(f2);
                     graph_destroy(graph);
                     return NULL;
                 }
@@ -474,25 +594,59 @@ static void hash_function_reset(
                     n_vertices += 1;
                 }
 
+#ifdef HASH_STATISTICS
+                graph->statistics.graph_size = n_vertices;
+#endif /* HASH_STATISTICS */
+
                 graph_at_least(graph, n_vertices);
             }
         }
 
         assert(iteration + 1 > iteration);
 
+#ifdef HASH_STATISTICS
+        graph->statistics.iterations++;
+#endif /* HASH_STATISTICS */
+
         iteration++;
 
         graph_wipe(graph);
 
-        hash_function_reset(&f1, n_vertices);
-        hash_function_reset(&f2, n_vertices);
+        hash_function_reset(f1, n_vertices);
+        hash_function_reset(f2, n_vertices);
         
         for (size_t i = 0; i < n_keys; i++) {
             const char * key = hash_inputs->inputs[i].key;
             size_t length = hash_inputs->inputs[i].length;
 
-            hash_function_result r1 = hash_function_hash(&f1, key, length);
-            hash_function_result r2 = hash_function_hash(&f2, key, length);
+#ifdef HASH_STATISTICS
+            if (length > f1->salt_capacity) {
+                graph->statistics.reallocs_salt++;
+                graph->statistics.realloc_amount_salt +=
+                    sizeof(*f1->salt) * length;
+                graph->statistics.net_memory_allocated +=
+                    sizeof(*f1->salt) * length -
+                    sizeof(*f1->salt) * f1->salt_capacity;
+                graph->statistics.total_memory_allocated +=
+                    sizeof(*f1->salt) * length;
+                graph->statistics.rand_calls += (length - f1->salt_capacity);
+            }
+            if (length > f2->salt_capacity) {
+                graph->statistics.reallocs_salt++;
+                graph->statistics.realloc_amount_salt +=
+                    sizeof(*f2->salt) * length;
+                graph->statistics.net_memory_allocated +=
+                    sizeof(*f2->salt) * length -
+                    sizeof(*f2->salt) * f2->salt_capacity;
+                graph->statistics.total_memory_allocated +=
+                    sizeof(*f2->salt) * length;
+                graph->statistics.rand_calls += (length - f2->salt_capacity);
+            }
+            graph->statistics.hashes_calculated += 2;
+#endif /* HASH_STATISTICS */
+
+            hash_function_result r1 = hash_function_hash(f1, key, length);
+            hash_function_result r2 = hash_function_hash(f2, key, length);
 
             graph_biconnect(graph, r1, r2, i);
         }
@@ -502,8 +656,8 @@ static void hash_function_reset(
     for (size_t i = 0; i < n_keys; i++) {
         const char * key = hash_inputs->inputs[i].key;
         size_t length = hash_inputs->inputs[i].length;
-        hash_function_result r1 = hash_function_hash(&f1, key, length);
-        hash_function_result r2 = hash_function_hash(&f2, key, length);
+        hash_function_result r1 = hash_function_hash(f1, key, length);
+        hash_function_result r2 = hash_function_hash(f2, key, length);
         hash_function_result v1 = graph->vertices[r1].value;
         hash_function_result v2 = graph->vertices[r2].value;
         hash_function_result v = (v1 + v2) % graph->n_vertices;
@@ -514,6 +668,32 @@ static void hash_function_reset(
     }
 #endif /* NDEBUG */
 
+#ifdef HASH_STATISTICS
+    size_t min_capacity = graph->vertices[0].edge_capacity;
+    size_t max_capacity = graph->vertices[0].edge_capacity;
+    size_t unneeded = 0;
+    for (size_t i = 0; i < graph->n_vertices; i++) {
+        if (graph->vertices[i].edge_capacity < min_capacity) {
+            min_capacity = graph->vertices[i].edge_capacity;
+        }
+        if (graph->vertices[i].edge_capacity > max_capacity) {
+            max_capacity = graph->vertices[i].edge_capacity;
+        }
+        assert(graph->vertices[i].n_edges <= graph->vertices[i].edge_capacity);
+        unneeded +=
+            graph->vertices[i].edge_capacity - graph->vertices[i].n_edges_max;
+    }
+    graph->statistics.edge_capacity_min = min_capacity;
+    graph->statistics.edge_capacity_max = max_capacity;
+    graph->statistics.unneeded_edges_allocated = unneeded;
+
+    graph->statistics.vertex_stack_capacity = graph->vertex_stack_capacity;
+
+    assert(f1->salt_length == f2->salt_length);
+    graph->statistics.key_length_max = f1->salt_length;
+    graph->statistics.key_length_max = f1->salt_capacity;
+#endif /* HASH_STATISTICS */
+
     /*
      * TODO: we could restructure graph so that it keeps all the values in an
      *       array we could extract here instead of split up over the
@@ -522,11 +702,18 @@ static void hash_function_reset(
     struct hash * hash = malloc(sizeof(*hash));
     *hash = (struct hash) {
         .keys = *hash_inputs,
-        .f1 = f1,
-        .f2 = f2,
+        .f1 = *f1,
+        .f2 = *f2,
         .values = malloc(sizeof(*hash->values) * graph->n_vertices),
         .n_values = graph->n_vertices
     };
+
+    free(f1);
+    free(f2);
+
+#ifdef HASH_STATISTICS
+    hash->statistics = graph->statistics;
+#endif /* HASH_STATISTICS */
 
     *hash_inputs = (struct hash_inputs) { };
 

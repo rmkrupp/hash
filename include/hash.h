@@ -103,7 +103,28 @@ const struct hash_lookup_result * hash_lookup(
 
 /* the statistics filled by hash_get_statistics */
 struct hash_statistics {
-
+    size_t key_length_max;
+    size_t iterations;
+    size_t nodes_explored;
+    size_t rand_calls;
+    size_t hashes_calculated;
+    size_t graph_size;
+    size_t vertex_stack_capacity;
+    size_t edges_allocated;
+    size_t edges_preallocated;
+    size_t unneeded_edges_allocated;
+    size_t edge_capacity_min;
+    size_t edge_capacity_max;
+    size_t net_memory_allocated;
+    size_t total_memory_allocated;
+    size_t reallocs_edges;
+    size_t reallocs_salt;
+    size_t reallocs_stack;
+    size_t reallocs_vertices;
+    size_t realloc_amount_edges;
+    size_t realloc_amount_salt;
+    size_t realloc_amount_stack;
+    size_t realloc_amount_vertices;
 };
 
 /* fill statistics with statistics on this hash

@@ -47,12 +47,12 @@ int main(int argc, char ** argv)
     hash_inputs_add(hash_inputs, "mineral", 7, NULL);
     hash_inputs_add(hash_inputs, "toaster oven", 12, NULL);
 
-    size_t n = 10000;
+    size_t n = 100000;
 
     size_t keep = rand() % n;
     char * keep_s = NULL;
 
-    size_t length = 128;
+    size_t length = 64;
     char * s = malloc(length + 1);
     s[length] = '\0';
     for (size_t i = 0; i < n; i++) {

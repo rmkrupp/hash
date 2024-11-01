@@ -36,7 +36,9 @@ int main(int argc, char ** argv)
     FILE * f = fopen("keys", "r");
     char * buffer = malloc(1024);
     while (fgets(buffer, 1024, f)) {
-        hash_inputs_add(hash_inputs, buffer, strlen(buffer) - 1, NULL);
+        size_t n = strlen(buffer);
+        buffer[n - 1] = '\0';
+        hash_inputs_add(hash_inputs, buffer, n - 1, NULL);
     }
     fclose(f);
     free(buffer);
@@ -53,6 +55,28 @@ int main(int argc, char ** argv)
         printf("hash is null\n");
         return 1;
     }
+
+    struct hash_statistics statistics;
+    hash_get_statistics(hash, &statistics);
+
+    printf("key_length_max = %lu\n", statistics.key_length_max);
+    printf("iterations = %lu\n", statistics.iterations);
+    printf("nodes_explored = %lu\n", statistics.nodes_explored);
+    printf("rand_calls = %lu\n", statistics.rand_calls);
+    printf("hashes_calculated = %lu\n", statistics.hashes_calculated);
+    printf("graph_size = %lu\n", statistics.graph_size);
+    printf("vertex_stack_capacity = %lu\n", statistics.vertex_stack_capacity);
+    printf("edges_allocated = %lu\n", statistics.edges_allocated);
+    printf("edges_preallocated = %lu\n", statistics.edges_preallocated);
+    printf("unneeded_edges_allocated = %lu\n", statistics.unneeded_edges_allocated);
+    printf("edge_capacity_min = %lu\n", statistics.edge_capacity_min);
+    printf("edge_capacity_max = %lu\n", statistics.edge_capacity_max);
+    printf("net_memory_allocated = %lu\n", statistics.net_memory_allocated);
+    printf("total_memory_allocated = %lu\n", statistics.total_memory_allocated);
+    printf("reallocs_edges = %lu\n", statistics.reallocs_edges);
+    printf("reallocs_salt = %lu\n", statistics.reallocs_salt);
+    printf("reallocs_stack = %lu\n", statistics.reallocs_stack);
+    printf("reallocs_vertices = %lu\n", statistics.reallocs_vertices);
 
     const struct hash_lookup_result * result1 = hash_lookup(hash, "mineral", 7);
     if (result1) {
