@@ -122,6 +122,9 @@ typedef ssize_t hash_function_result;
 struct graph {
     struct vertex * vertices;
     size_t n_vertices;
+
+    struct vertex_stack_node * vertex_stack;
+    size_t vertex_stack_capacity;
 };
 
 /* a vertex in the above graph */
@@ -139,11 +142,20 @@ struct edge {
     hash_function_result value;
 };
 
+/* a (vertex, parent) pair for the vertext_stack */
+struct vertex_stack_node {
+    struct vertex * vertex, * parent;
+};
+
 /* create a new, empty graph */
 [[nodiscard]] static struct graph * graph_create()
 {
     struct graph * graph = malloc(sizeof(*graph));
-    *graph = (struct graph) { };
+    *graph = (struct graph) {
+        /* pre-allocate space for a single vertex on the stack */
+        .vertex_stack = malloc(sizeof(*graph->vertex_stack)),
+        .vertex_stack_capacity = 1
+    };
     return graph;
 }
 
@@ -153,6 +165,7 @@ static void graph_destroy(struct graph * graph) [[gnu::nonnull(1)]]
         free(graph->vertices[i].edges);
     }
     free(graph->vertices);
+    free(graph->vertex_stack);
     free(graph);
 }
 
@@ -244,14 +257,9 @@ static void graph_biconnect(
  */
 static bool graph_resolve(struct graph * graph)
 {
-    struct vertex_stack_node {
-        struct vertex * vertex, * parent;
-    };
-
-    // TODO persist vertex stack? (as part of graph? or argument?)
-    struct vertex_stack_node * vertex_stack = malloc(sizeof(*vertex_stack));
-    size_t vertex_stack_length = 0;
-    size_t vertex_stack_capacity = 1;
+    struct vertex_stack_node * vertex_stack = graph->vertex_stack;
+    size_t vertex_stack_length;
+    size_t vertex_stack_capacity = graph->vertex_stack_capacity;
 
     for (size_t i = 0; i < graph->n_vertices; i++) {
         struct vertex * root = &graph->vertices[i];
@@ -289,7 +297,6 @@ static bool graph_resolve(struct graph * graph)
 
                 if (to->visited) {
                     // cyclic
-                    free(vertex_stack);
                     return false;
                 }
 
@@ -300,6 +307,8 @@ static bool graph_resolve(struct graph * graph)
                             sizeof(*vertex_stack) * (vertex_stack_capacity + 1)
                         );
                     vertex_stack_capacity += 1;
+                    graph->vertex_stack = vertex_stack;
+                    graph->vertex_stack_capacity = vertex_stack_capacity;
                 }
                 vertex_stack[vertex_stack_length] =
                     (struct vertex_stack_node) {
@@ -326,7 +335,6 @@ static bool graph_resolve(struct graph * graph)
     }
 
     // acyclic, all vertex values no longer -1
-    free(vertex_stack);
     return true;
 }
 
