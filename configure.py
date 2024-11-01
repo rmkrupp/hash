@@ -50,6 +50,8 @@ parser.add_argument('--disable-tool', action='append', default=[],
                     help='don\'t build a specific tool')
 parser.add_argument('--enable-hash-statistics', action='store_true',
                     help='compile with -DHASH_STATISTICS')
+parser.add_argument('--disable-hash-warnings', action='store_true',
+                    help='compile with -DNO_HASH_WARNINGS')
 #parser.add_argument('--disable-argp', action='store_true',
 #                    help='fall back to getopt for argument parsing')
 parser.add_argument('--disable-sanitize', action='store_true',
@@ -90,6 +92,10 @@ def enable_w64():
 
 def enable_hash_statistics():
     w.variable(key = 'defines', value = '$defines -DHASH_STATISTICS')
+
+def disable_hash_warnings():
+    w.variable(key = 'defines', value = '$defines -DNO_HASH_WARNINGS')
+
 
 #
 # THE WRITER
@@ -206,9 +212,18 @@ w.newline()
 #
 # -DHASH_STATISTICS
 #
+
 if args.enable_hash_statistics:
     w.comment('we were generated with --enable-hash-statistics, so do so')
     enable_hash_statistics()
+    w.newline()
+
+#
+# -DNO_HASH_WARNINGS
+#
+if args.enable_hash_statistics:
+    w.comment('we were generated with --disable-hash-warnings, so do so')
+    disable_hash_warnings()
     w.newline()
 
 #
