@@ -65,12 +65,14 @@ constexpr size_t hash_iterations_growth_multiplier_divider = 1024;
  * TYPES
  */
 
+typedef ssize_t hash_function_result;
+
 /* the state describing a hash function
  *
  * salt is ints because rand() makes ints
  */
 struct hash_function {
-    int * salt;
+    unsigned char * salt;
     size_t salt_length;
     size_t salt_capacity;
     size_t n;
@@ -111,8 +113,6 @@ struct hash {
 /*
  * GRAPH
  */
-
-typedef ssize_t hash_function_result;
 
 /* a graph
  *
@@ -372,7 +372,20 @@ static void hash_function_reset(
         }
 
         for (size_t i = hash_function->salt_length; i < length; i++) {
-            hash_function->salt[i] = rand() % hash_function->n;
+            /*
+            hash_function->salt[i] = (rand() + 1) % hash_function->n;
+            */
+            int n = rand() % (26 + 26 + 10);
+            char c;
+            if (n < 26) {
+                c = 'a' + n;
+            } else if (n < 26 + 26) {
+                c = 'A' + n - 26;
+            } else {
+                c = '0' + n - 26 - 26;
+            }
+            assert(c >= 0);
+            hash_function->salt[i] = c;
         }
         hash_function->salt_length = length;
     }
@@ -380,8 +393,9 @@ static void hash_function_reset(
     hash_function_result sum = 0;
     for (size_t i = 0; i < length; i++) {
         hash_function_result x =
-            (hash_function_result)key[i] * 
+            (hash_function_result)(unsigned char)key[i] * 
             (hash_function_result)hash_function->salt[i];
+        assert(x >= 0);
         assert((sum + x) >= sum);
         sum += x;
     }
