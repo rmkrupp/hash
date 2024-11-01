@@ -140,7 +140,7 @@ if args.cc:
     if (args.build == 'w64' and args.cc != 'x86_64-w64-mingw32-gcc') or (args.build != 'w64' and args.cc != 'gcc'):
         w.comment('using this cc because we were generated with --cc=' + args.cc)
     w.variable(key = 'cc', value = args.cc)
-if args.build == 'w64':
+elif args.build == 'w64':
     w.variable(key = 'cc', value = 'x86_64-w64-mingw32-gcc')
 else:
     w.variable(key = 'cc', value = 'gcc')
@@ -149,7 +149,7 @@ if args.ar:
     if (args.build == 'w64' and args.ar != 'x86_64-w64-mingw32-gcc-ar') or (args.build != 'w64' and args.cc != 'gcc-ar'):
         w.comment('using this ar because we were generated with --ar=' + args.ar)
     w.variable(key = 'ar', value = args.ar)
-if args.build == 'w64':
+elif args.build == 'w64':
     w.variable(key = 'ar', value = 'x86_64-w64-mingw32-gcc-ar')
 else:
     w.variable(key = 'ar', value = 'gcc-ar')
