@@ -72,7 +72,7 @@ typedef ssize_t hash_function_result;
  * salt is ints because rand() makes ints
  */
 struct hash_function {
-    unsigned char * salt;
+    size_t * salt;
     size_t salt_length;
     size_t salt_capacity;
     size_t n;
@@ -374,20 +374,7 @@ static void hash_function_reset(
         }
 
         for (size_t i = hash_function->salt_length; i < length; i++) {
-            /*
-            hash_function->salt[i] = (rand() + 1) % hash_function->n;
-            */
-            int n = rand() % (26 + 26 + 10);
-            char c;
-            if (n < 26) {
-                c = 'a' + n;
-            } else if (n < 26 + 26) {
-                c = 'A' + n - 26;
-            } else {
-                c = '0' + n - 26 - 26;
-            }
-            assert(c >= 0);
-            hash_function->salt[i] = c;
+            hash_function->salt[i] = rand() % hash_function->n;
         }
         hash_function->salt_length = length;
     }
