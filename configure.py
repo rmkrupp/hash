@@ -97,7 +97,7 @@ def enable_hash_statistics():
     w.variable(key = 'defines', value = '$defines -DHASH_STATISTICS')
 
 def disable_hash_warnings():
-    w.variable(key = 'defines', value = '$defines -DNO_HASH_WARNINGS')
+    w.variable(key = 'defines', value = '$defines -DHASH_NO_WARNINGS')
 
 
 #
@@ -231,9 +231,9 @@ if args.enable_hash_statistics:
     w.newline()
 
 #
-# -DNO_HASH_WARNINGS
+# -DHASH_NO_WARNINGS
 #
-if args.enable_hash_statistics:
+if args.disable_hash_warnings:
     w.comment('we were generated with --disable-hash-warnings, so do so')
     disable_hash_warnings()
     w.newline()
