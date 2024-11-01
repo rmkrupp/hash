@@ -54,7 +54,7 @@ parser.add_argument('--disable-tool', action='append', default=[],
 parser.add_argument('--enable-hash-statistics', action='store_true',
                     help='compile with -DHASH_STATISTICS')
 parser.add_argument('--disable-hash-warnings', action='store_true',
-                    help='compile with -DNO_HASH_WARNINGS')
+                    help='compile with -DHASH_NO_WARNINGS')
 #parser.add_argument('--disable-argp', action='store_true',
 #                    help='fall back to getopt for argument parsing')
 parser.add_argument('--disable-sanitize', action='store_true',
