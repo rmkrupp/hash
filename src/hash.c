@@ -615,7 +615,7 @@ const struct hash_lookup_result * hash_lookup(
     if ((size_t)i >= hash->keys.n_inputs) {
         return NULL;
     }
-    assert(i < (hash_function_result)hash->keys.n_inputs);
+
     struct hash_input * input = &hash->keys.inputs[i];
 
     if (input->length != length) {
