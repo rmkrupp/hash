@@ -1,4 +1,4 @@
-/* File: include/hash/hash.h
+/* File: include/hash.h
  * Part of hash <github.com/rmkrupp/hash>
  *
  * Copyright (C) 2024 Noah Santer <n.ed.santer@gmail.com>
@@ -22,6 +22,28 @@
 
 #include <stddef.h>
 
+/* this is a hashing library
+ *
+ * it is meant for cases where you have keys that are (relatively) fixed while
+ * matching, i.e. when you can (re-)generate the hash table every time keys
+ * change because that doesn't happen frequently.
+ *
+ * create a struct hash_inputs with hash_inputs_create(), add in the keys you
+ * want to hash with hash_inputs_add(), and then turn them into a hash table
+ * with hash_create
+ */
+
+/*
+ * there is a hard limit for number of keys, around 2^39 if ssize_t can hold
+ * a 63-bit number and hash_iterations_growth_multiplier is 1024. (See hash.c
+ * for this.) The library will crash because it has run out of memory before
+ * this point, though.
+ *
+ * also, if you are really using more than 2^31 keys, update salt generation
+ * in hash_function_hash (in hash.c) to get more than an int's worth of random
+ * data at a time for those cases.
+ */
+
 /* a hash table */
 struct hash;
 
@@ -30,22 +52,43 @@ struct hash_inputs;
 
 /* the result of a hash_lookup[() */
 struct hash_lookup_result {
-    const char * key;
-    size_t n;
-    void * ptr;
+    const char * key; /* the key, null terminated */
+    size_t length; /* the length of key, not including the terminator */
+    void * ptr; /* the pointer passed when the key was added */
 };
 
-/* calculate a hash table for all the elements in from */
+/* calculate a hash table for all the elements in hash_inputs
+ *
+ * this can fail. if it does, this function returns null.
+ *
+ * the tuning parameters in src/hash.c can be adjusted if necessary to change
+ * how the parameter-space is searched before giving up.
+ *
+ * calculation depends on the rand() function for randomness and so affects
+ * that state and can be affected by seeding with srand(). it does not call
+ * srand().
+ *
+ * if this returns non-null, the keys will have been removed from hash_inputs.
+ * it still needs to be free'd.
+ *
+ * if you want the inputs back, see hash_recycle_inputs
+ */
 [[nodiscard]] struct hash * hash_create(
-        struct hash_inputs * from) [[gnu::nonnull(1)]];
+        struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]];
 
 /* destroy this hash table */
 void hash_destroy(struct hash * hash) [[gnu::nonnull(1)]];
 
-/* apply this function over every element of this hash */
+/* destroy this hash table, but extract the hash_input it was created with
+ * first and return them for modification and reuse
+ */
+struct hash_inputs * hash_recycle_inputs(
+        struct hash * hash) [[gnu::nonnull(1)]];
+
+/* apply this function over every key this hash was created with */
 void hash_apply(
         struct hash * hash,
-        void (*fn)(const char * s, size_t n, void ** ptr)
+        void (*fn)(const char * key, size_t length, void ** ptr)
     ) [[gnu::nonnull(1, 2)]];
 
 /* look up this key of length n in this hash,
@@ -54,7 +97,7 @@ void hash_apply(
 const struct hash_lookup_result * hash_lookup(
         struct hash * hash,
         const char * key,
-        size_t n
+        size_t length
     ) [[gnu::nonnull(1, 2)]];
 
 
@@ -62,7 +105,6 @@ const struct hash_lookup_result * hash_lookup(
 struct hash_statistics {
 
 };
-
 
 /* fill statistics with statistics on this hash
  * these statistics will only be accurate if hash.c was compiled with
@@ -73,10 +115,8 @@ void hash_get_statistics(
         struct hash_statistics * statistics
     ) [[gnu::nonnull(1, 2)]];
 
-/* create a hash_inputs structure, optionally filling it with all the elements
- * that were in from (or no elements if from is NULL)
- */
-[[nodiscard]] struct hash_inputs * hash_inputs_create(struct hash * from);
+/* create an empty hash_inputs structure */
+[[nodiscard]] struct hash_inputs * hash_inputs_create();
 
 /* destroy a hash_inputs structure */
 void hash_inputs_destroy(
@@ -90,24 +130,67 @@ void hash_inputs_grow(
 void hash_inputs_at_least(
         struct hash_inputs * hash_inputs, size_t n) [[gnu::nonnull(1)]];
 
-/* add this string of length n to this hash_inputs, associating it with ptr */
+/* add this string of the given length to this hash_inputs, associating it with
+ * ptr
+ *
+ * a zero-length string cannot be hashed and will be ignored. A warning will
+ * be issued unless HASH_NO_WARNINGS
+ *
+ * this key must not already be in hash_inputs. if it is, the behavior of a
+ * hash table generated from these inputs becomes undefined.
+ *
+ * see hash_inputs_add_safe(), but hash_inputs is not optimized for this case
+ * (it does not sort itself) and so hash_inputs_add() is the preferred method
+ * of adding keys. sort/deduplicate them beforehand!
+ */
 void hash_inputs_add(
         struct hash_inputs * hash_inputs,
-        const char * s,
-        size_t n,
+        const char * key,
+        size_t length,
+        void * ptr
+    ) [[gnu::nonnull(1, 2)]];
+
+/* see hash_inputs_add
+ *
+ * this lifts the requirement of key uniqueness by comparing this key to every
+ * key already in the table. this will not protect future calls to
+ * hash_inputs_add() with this key!
+ *
+ * use mindfully and with caution
+ */
+void hash_inputs_add_safe(
+        struct hash_inputs * hash_inputs,
+        const char * key,
+        size_t length,
         void * ptr
     ) [[gnu::nonnull(1, 2)]];
 
 /* apply this function over every input*/
 void hash_inputs_apply(
         struct hash_inputs * hash_inputs,
-        void (*fn)(const char * s, size_t n, void ** ptr)
+        void (*fn)(const char * key, size_t length, void ** ptr)
     ) [[gnu::nonnull(1, 2)]];
 
 /* the statistics filled by hash_inputs_get_statistics */
 struct hash_inputs_statistics {
-    size_t n_growths;
-    size_t capacity;
+    size_t n_growths; /* how many times did the pool get grown by:
+                       *  - hash_inputs_add[_safe]
+                       *  - hash_inputs_grow
+                       *  - hash_inputs_at_least
+                       */
+    size_t capacity; /* the internal capacity of the pool
+                      * may be greater than the number of keys if the grow
+                      * or at_least functions were used, or if
+                      * hash_inputs_grow_increment is more than 1
+                      */
+    size_t n_safe_adds_were_safe; /* how many times did hash_inputs_add_safe
+                                   * get called when the key was not already
+                                   * added
+                                   */
+    size_t n_safe_adds_were_unsafe; /* how many times did hash_inputs_add_safe
+                                     * get called when the key WAS already
+                                     * added
+                                     */
 };
 
 /* fill statistics with statistics on this hash_inputs
