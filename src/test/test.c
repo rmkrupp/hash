@@ -20,13 +20,9 @@
 #include "hash.h"
 
 #include <stdio.h>
-
-static void print_all(const char * s, size_t n, void ** ptrptr)
-{
-    (void)n;
-    (void)ptrptr;
-    printf("%s\n", s);
-}
+#include <string.h>
+#include <time.h>
+#include <stdlib.h>
 
 int main(int argc, char ** argv)
 {
@@ -40,7 +36,16 @@ int main(int argc, char ** argv)
     hash_inputs_add(hash_inputs, "mineral", 7, NULL);
     hash_inputs_add(hash_inputs, "toaster oven", 12, NULL);
 
-    hash_inputs_apply(hash_inputs, &print_all);
+    size_t length = 8;
+    char * s = malloc(length + 1);
+    s[length] = '\0';
+    for (size_t i = 0; i < 100; i++) {
+        for (size_t j = 0; j < length; j++) {
+            s[j] = 'a' + rand() % 26;
+        }
+        hash_inputs_add_safe(hash_inputs, s, strlen(s), NULL);
+    }
+    free(s);
 
     struct hash_inputs_statistics hash_inputs_statistics;
     hash_inputs_get_statistics(hash_inputs, &hash_inputs_statistics);
