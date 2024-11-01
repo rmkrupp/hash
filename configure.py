@@ -36,6 +36,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--cflags', help='override compiler flags')
 parser.add_argument('--cc', help='override cc')
+parser.add_argument('--ar', help='override ar')
 parser.add_argument('--ldflags', help='override compiler flags when linking')
 #parser.add_argument('--prefix')
 #parser.add_argument('--destdir')
@@ -45,6 +46,8 @@ parser.add_argument('--build',
 parser.add_argument('--build-native',
                     choices=['none', 'mtune', 'march'], default='none',
                     help='build with mtune=native or march=native')
+parser.add_argument('--disable-static-library', action='store_true',
+                    help='don\'t build hash.a')
 parser.add_argument('--disable-tool', action='append', default=[],
                     choices=[],
                     help='don\'t build a specific tool')
@@ -142,13 +145,22 @@ if args.build == 'w64':
 else:
     w.variable(key = 'cc', value = 'gcc')
 
+if args.ar:
+    if (args.build == 'w64' and args.ar != 'x86_64-w64-mingw32-gcc-ar') or (args.build != 'w64' and args.cc != 'gcc-ar'):
+        w.comment('using this ar because we were generated with --ar=' + args.ar)
+    w.variable(key = 'ar', value = args.ar)
+if args.build == 'w64':
+    w.variable(key = 'ar', value = 'x86_64-w64-mingw32-gcc-ar')
+else:
+    w.variable(key = 'ar', value = 'gcc-ar')
+
 #
 # CFLAGS/LDFLAGS DEFAULTS
 #
 
 if args.cflags:
     w.comment('these are overriden below because we were generated with --cflags=' + args.cflags)
-w.variable(key = 'cflags', value = '-Wall -Wextra -Werror -fdiagnostics-color')
+w.variable(key = 'cflags', value = '-Wall -Wextra -Werror -fdiagnostics-color -flto')
 
 if args.ldflags:
     w.comment('these are overriden below because we were generated with --ldflags=' + args.ldflags)
@@ -280,6 +292,12 @@ w.rule(
     )
 w.newline()
 
+w.rule(
+        name = 'static-library',
+        command = '$ar rcs $out $in $ldflags $libs'
+    )
+w.newline()
+
 #
 # SOURCES
 #
@@ -296,7 +314,7 @@ w.newline()
 all_targets = []
 tools_targets = []
 
-def bin_target(name, inputs, targets=[], variables=[], is_disabled=False, why_disabled=''):
+def target(name, inputs, targets=[], variables=[], is_disabled=False, why_disabled='', rule='bin'):
     fullname = exesuffix(name, args.build == 'w64')
 
     if type(is_disabled) == bool:
@@ -308,7 +326,7 @@ def bin_target(name, inputs, targets=[], variables=[], is_disabled=False, why_di
     if True not in is_disabled:
         for group in targets:
             group += [fullname]
-        w.build(fullname, 'bin', inputs, variables=variables)
+        w.build(fullname, rule, inputs, variables=variables)
     else:
         if sum([1 for disabled in is_disabled if disabled]) > 1:
             w.comment(fullname + ' is disabled because:')
@@ -321,7 +339,7 @@ def bin_target(name, inputs, targets=[], variables=[], is_disabled=False, why_di
                        if is_disabled[x]][0])
     w.newline()
 
-bin_target(
+target(
         name = 'test',
         inputs = [
             '$builddir/hash.o',
@@ -334,6 +352,17 @@ bin_target(
         targets = [all_targets, tools_targets]
     )
 
+target(
+        rule = 'static-library',
+        name = 'hash.a',
+        inputs = [
+            '$builddir/hash.o'
+        ],
+        variables = [('libs', '')],
+        is_disabled = args.disable_static_library,
+        why_disabled = 'we were generated with --disable-static-library',
+        targets = [all_targets]
+    )
 #
 # ALL, TOOLS, AND DEFAULT
 #
