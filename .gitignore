@@ -1,6 +1,6 @@
-test
-test.exe
-hash.a
+/test
+/test.exe
+/hash.a
 build.ninja
 /out/
 __pycache__
