@@ -3,6 +3,7 @@
 /test
 /test.exe
 /hash.a
+/keys
 build.ninja
 /out/
 __pycache__
