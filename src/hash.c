@@ -231,11 +231,10 @@ static void graph_at_least(
              *
              * make it a tuneable
              */
-#if HASH_PREALLOC_EDGES > 0
-            .edges = malloc(
-                    sizeof(*graph->vertices[i].edges) * hash_prealloc_edges),
+            .edges = hash_prealloc_edges ?
+                malloc(sizeof(*graph->vertices[i].edges)
+                        * hash_prealloc_edges) : NULL,
             .edge_capacity = hash_prealloc_edges
-#endif /* HASH_PREALLOC_EDGES */
         };
 #ifdef HASH_STATISTICS
         graph->statistics.edges_preallocated += hash_prealloc_edges;
