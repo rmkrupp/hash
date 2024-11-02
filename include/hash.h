@@ -33,7 +33,10 @@
  * with hash_create
  *
  * keys are always given with a length and may contain any value, including
- * embedded null bytes.
+ * embedded null bytes. the const char * key pointers handed out as part of a
+ * lookup result or apply function will always include a null byte after the
+ * key, i.e. at key[length]. thus, if passing strings as keys, their length
+ * need not include the null terminator.
  */
 
 /*

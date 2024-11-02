@@ -39,8 +39,6 @@
 
 /*
  * TODO for version 1.0:
- *  - should we do unsigned chars? does the hash handle embedded zero bytes
- *    fine everywhere? (look for strdup/strndup and change)
  *  - go over documentation one more time
  *  - check TODOs
  */
@@ -915,13 +913,14 @@ void hash_inputs_add(
         hash_inputs_grow(hash_inputs, hash_inputs_grow_increment);
     }
     hash_inputs->inputs[hash_inputs->n_inputs] = (struct hash_input) {
-        .key = malloc(length),
+        .key = malloc(length + 1),
         .length = length,
         .ptr = ptr
     };
     for (size_t i = 0; i < length; i++) {
         hash_inputs->inputs[hash_inputs->n_inputs].key[i] = key[i];
     }
+    hash_inputs->inputs[hash_inputs->n_inputs].key[length] = '\0';
     hash_inputs->n_inputs++;
 }
 
