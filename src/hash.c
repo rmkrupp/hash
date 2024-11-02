@@ -43,7 +43,6 @@
  * TODO for version 1.0:
  *  - should there be a grow increment for edges? (multiplicative realloc?)
  *      (at least optionally?)
- *  - Test de-pointerifying the hash functions
  *  - should we do unsigned chars? does the hash handle embedded zero bytes
  *    fine everywhere? (look for strdup/strndup and change)
  *  - go over documentation one more time
@@ -585,13 +584,7 @@ static hash_function_result hash_function_hash(
         sizeof(*graph) - sizeof(struct hash_statistics);
 #endif /* HASH_STATISTICS */
 
-    //struct hash_function f1, f2;
-    //f1 = (struct hash_function) { };
-    //f2 = (struct hash_function) { };
-    struct hash_function * f1 = malloc(sizeof(*f1));
-    struct hash_function * f2 = malloc(sizeof(*f2));
-    *f1 = (struct hash_function) { };
-    *f2 = (struct hash_function) { };
+    struct hash_function f1 = {}, f2 = {};
 
     size_t iteration = 0;
     size_t vertices_max = hash_iterations_max_multiplier * n_vertices;
@@ -619,10 +612,8 @@ static hash_function_result hash_function_hash(
                             iteration
                         );
 #endif /* HASH_NO_WARNINGS */
-                    free(f1->salt);
-                    free(f2->salt);
-                    free(f1);
-                    free(f2);
+                    free(f1.salt);
+                    free(f2.salt);
                     graph_destroy(graph);
                     return NULL;
                 }
@@ -645,41 +636,41 @@ static hash_function_result hash_function_hash(
 
         graph_wipe(graph);
 
-        hash_function_reset(f1, n_vertices);
-        hash_function_reset(f2, n_vertices);
+        hash_function_reset(&f1, n_vertices);
+        hash_function_reset(&f2, n_vertices);
         
         for (size_t i = 0; i < n_keys; i++) {
             const char * key = hash_inputs->inputs[i].key;
             size_t length = hash_inputs->inputs[i].length;
 
 #ifdef HASH_STATISTICS
-            if (length > f1->salt_capacity) {
+            if (length > f1.salt_capacity) {
                 graph->statistics.reallocs_salt++;
                 graph->statistics.realloc_amount_salt +=
-                    sizeof(*f1->salt) * length;
+                    sizeof(*f1.salt) * length;
                 graph->statistics.net_memory_allocated +=
-                    sizeof(*f1->salt) * length -
-                    sizeof(*f1->salt) * f1->salt_capacity;
+                    sizeof(*f1.salt) * length -
+                    sizeof(*f1.salt) * f1.salt_capacity;
                 graph->statistics.total_memory_allocated +=
-                    sizeof(*f1->salt) * length;
-                graph->statistics.rand_calls += (length - f1->salt_capacity);
+                    sizeof(*f1.salt) * length;
+                graph->statistics.rand_calls += (length - f1.salt_capacity);
             }
-            if (length > f2->salt_capacity) {
+            if (length > f2.salt_capacity) {
                 graph->statistics.reallocs_salt++;
                 graph->statistics.realloc_amount_salt +=
-                    sizeof(*f2->salt) * length;
+                    sizeof(*f2.salt) * length;
                 graph->statistics.net_memory_allocated +=
-                    sizeof(*f2->salt) * length -
-                    sizeof(*f2->salt) * f2->salt_capacity;
+                    sizeof(*f2.salt) * length -
+                    sizeof(*f2.salt) * f2.salt_capacity;
                 graph->statistics.total_memory_allocated +=
-                    sizeof(*f2->salt) * length;
-                graph->statistics.rand_calls += (length - f2->salt_capacity);
+                    sizeof(*f2.salt) * length;
+                graph->statistics.rand_calls += (length - f2.salt_capacity);
             }
             graph->statistics.hashes_calculated += 2;
 #endif /* HASH_STATISTICS */
 
-            hash_function_result r1 = hash_function_hash(f1, key, length);
-            hash_function_result r2 = hash_function_hash(f2, key, length);
+            hash_function_result r1 = hash_function_hash(&f1, key, length);
+            hash_function_result r2 = hash_function_hash(&f2, key, length);
 
             graph_biconnect(graph, r1, r2, i);
         }
@@ -694,8 +685,8 @@ static hash_function_result hash_function_hash(
     for (size_t i = 0; i < n_keys; i++) {
         const char * key = hash_inputs->inputs[i].key;
         size_t length = hash_inputs->inputs[i].length;
-        hash_function_result r1 = hash_function_hash(f1, key, length);
-        hash_function_result r2 = hash_function_hash(f2, key, length);
+        hash_function_result r1 = hash_function_hash(&f1, key, length);
+        hash_function_result r2 = hash_function_hash(&f2, key, length);
         hash_function_result v1 = graph->vertices[r1].value;
         hash_function_result v2 = graph->vertices[r2].value;
         hash_function_result v = (v1 + v2) % graph->n_vertices;
@@ -727,9 +718,9 @@ static hash_function_result hash_function_hash(
 
     graph->statistics.vertex_stack_capacity = graph->vertex_stack_capacity;
 
-    assert(f1->salt_length == f2->salt_length);
-    graph->statistics.key_length_max = f1->salt_length;
-    graph->statistics.key_length_max = f1->salt_capacity;
+    assert(f1.salt_length == f2.salt_length);
+    graph->statistics.key_length_max = f1.salt_length;
+    graph->statistics.key_length_max = f1.salt_capacity;
 #endif /* HASH_STATISTICS */
 
     /*
@@ -740,14 +731,11 @@ static hash_function_result hash_function_hash(
     struct hash * hash = malloc(sizeof(*hash));
     *hash = (struct hash) {
         .keys = *hash_inputs,
-        .f1 = *f1,
-        .f2 = *f2,
+        .f1 = f1,
+        .f2 = f2,
         .values = malloc(sizeof(*hash->values) * graph->n_vertices),
         .n_values = graph->n_vertices
     };
-
-    free(f1);
-    free(f2);
 
 #ifdef HASH_STATISTICS
     hash->statistics = graph->statistics;
