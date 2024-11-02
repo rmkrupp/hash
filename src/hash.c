@@ -26,6 +26,8 @@
  *
  * This code is not derived from the CMPH code found at <cmph.sourceforge.net>
  * but you can find the paper there (at cmph.sourceforge.net/papers/chm92.pdf)
+ *
+ * See the notes in the hash.h header for some general information.
  */
 
 #include <stdbool.h>
@@ -36,12 +38,6 @@
 #if !defined(HASH_NO_WARNINGS) || !HASH_NO_WARNINGS
 #include <stdio.h>
 #endif /* HASH_NO_WARNINGS */
-
-/*
- * TODO for version 1.0:
- *  - go over documentation one more time
- *  - check TODOs
- */
 
 /*
  * TUNING VALUES
@@ -328,7 +324,6 @@ static void graph_connect(
             sizeof(*from->edges) * (from->edge_capacity + 1);
 #endif /* HASH_STATISTICS */
 
-        // TODO grow rate?
         from->edges = realloc(
                 from->edges, sizeof(*from->edges) * (from->edge_capacity + 1));
         from->edge_capacity += 1;
@@ -545,7 +540,8 @@ static hash_function_result hash_function_hash(
  * if this returns non-null, the keys will have been removed from hash_inputs.
  * it still needs to be free'd.
  *
- * if you want the inputs back, see hash_recycle_inputs
+ * if you want the inputs back, see hash_recycle_inputs, hash_get_inputs, and
+ * hash_inputs_from_hash.
  */
 [[nodiscard]] struct hash * hash_create(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
@@ -758,8 +754,12 @@ void hash_destroy(struct hash * hash) [[gnu::nonnull(1)]]
     free(hash);
 }
 
-/* destroy this hash table, but extract the keys it was created with
- * first and return them in a fresh hash_inputs struct
+/* destroy this hash table, but extract the hash_inputs it was created with
+ * first and return it for modification and reuse
+ *
+ * this is a new hash_inputs and needs to be free'd separely from the one
+ * passed to hash_create. moreover, free'ing that hash_inputs has no effect
+ * on the use or results of this function
  */
 struct hash_inputs * hash_recycle_inputs(
         struct hash * hash) [[gnu::nonnull(1)]]
@@ -771,7 +771,19 @@ struct hash_inputs * hash_recycle_inputs(
     return inputs;
 }
 
-/* apply this function over every element of this hash */
+/* returns a pointer to the keys inside this hash table and, if n_keys_out
+ * is non-NULL, sets it to the number of keys
+ */
+struct hash_lookup_result * hash_get_keys(
+        struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]]
+{
+    if (n_keys_out) {
+        *n_keys_out = hash->keys.n_inputs;
+    }
+    return (struct hash_lookup_result *)hash->keys.inputs;
+}
+
+/* apply this function over every key this hash was created with */
 void hash_apply(
         struct hash * hash,
         void (*fn)(const char * s, size_t key, void ** ptr)
@@ -780,8 +792,8 @@ void hash_apply(
     hash_inputs_apply(&hash->keys, fn);
 }
 
-/* look up this key of length n in this hash,
- * returning a const pointer to the result if found or NULL otherwise
+/* look up this key of length n in this hash and return a const pointer to the
+ * result if found or NULL otherwise
  */
 const struct hash_lookup_result * hash_lookup(
         struct hash * hash,
@@ -822,7 +834,10 @@ const struct hash_lookup_result * hash_lookup(
     return (const struct hash_lookup_result *)input;
 }
 
-/* fill statistics with statistics on this hash */
+/* fill statistics with statistics on this hash
+ * these statistics will only be accurate if hash.c was compiled with
+ * -DHASH_STATISTICS
+ */
 void hash_get_statistics(
         struct hash * hash,
         struct hash_statistics * statistics
@@ -844,6 +859,22 @@ void hash_get_statistics(
     return hash_inputs;
 }
 
+/* create a hash_inputs structure containing all the keys in this hash
+ *
+ * note that if you are done with the hash, hash_recycles_inputs is more
+ * efficient because it recycles the keys in place.
+ */
+[[nodiscard]] struct hash_inputs * hash_inputs_from_hash(
+        struct hash * hash) [[gnu::nonnull(1)]]
+{
+    struct hash_inputs * hash_inputs = hash_inputs_create();
+    hash_inputs_grow(hash_inputs, hash->keys.n_inputs);
+    for (size_t i = 0; i < hash->keys.n_inputs; i++) {
+        hash_inputs->inputs[i] = hash->keys.inputs[i];
+    }
+    return hash_inputs;
+}
+
 /* destroy a hash_inputs structure */
 void hash_inputs_destroy(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
@@ -855,7 +886,11 @@ void hash_inputs_destroy(
     free(hash_inputs);
 }
 
-/* grow the capacity of hash_inputs by n */
+/* grow the capacity of hash_inputs by n
+ *
+ * this affects how many items can be added to n before it has to realloc
+ * its internal memory
+ */
 void hash_inputs_grow(
         struct hash_inputs * hash_inputs, size_t n) [[gnu::nonnull(1)]]
 {
@@ -963,7 +998,7 @@ void hash_inputs_add_safe(
     hash_inputs_add(hash_inputs, key, length, ptr);
 }
 
-/* apply this function over every input*/
+/* apply this function over every key */
 void hash_inputs_apply(
         struct hash_inputs * hash_inputs,
         void (*fn)(const char * key, size_t length, void ** ptr)

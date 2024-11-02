@@ -53,7 +53,7 @@
 /* a hash table */
 struct hash;
 
-/* a list of inputs to create a hash_table with */
+/* a list of keys to create a hash_table with */
 struct hash_inputs;
 
 /* the result of a hash_lookup[() */
@@ -77,19 +77,38 @@ struct hash_lookup_result {
  * if this returns non-null, the keys will have been removed from hash_inputs.
  * it still needs to be free'd.
  *
- * if you want the inputs back, see hash_recycle_inputs
+ * if you want the keys back, see hash_recycle_inputs, hash_get_inputs, and
+ * hash_inputs_from_hash.
  */
 [[nodiscard]] struct hash * hash_create(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]];
 
+/* create a hash_inputs structure containing all the keys in this hash
+ *
+ * note that if you are done with the hash, hash_recycles_inputs is more
+ * efficient because it recycles the keys in place.
+ */
+[[nodiscard]] struct hash_inputs * hash_inputs_from_hash(
+        struct hash * hash) [[gnu::nonnull(1)]];
+
 /* destroy this hash table */
 void hash_destroy(struct hash * hash) [[gnu::nonnull(1)]];
 
-/* destroy this hash table, but extract the hash_input it was created with
- * first and return them for modification and reuse
+/* destroy this hash table, but extract the hash_inputs it was created with
+ * first and return it for modification and reuse
+ *
+ * this is a new hash_inputs and needs to be free'd separely from the one
+ * passed to hash_create. moreover, free'ing that hash_inputs has no effect
+ * on the use or results of this function
  */
 struct hash_inputs * hash_recycle_inputs(
         struct hash * hash) [[gnu::nonnull(1)]];
+
+/* returns a pointer to the keys inside this hash table and, if n_keys_out
+ * is non-NULL, sets it to the number of keys
+ */
+struct hash_lookup_result * hash_get_keys(
+        struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]];
 
 /* apply this function over every key this hash was created with */
 void hash_apply(
@@ -97,15 +116,14 @@ void hash_apply(
         void (*fn)(const char * key, size_t length, void ** ptr)
     ) [[gnu::nonnull(1, 2)]];
 
-/* look up this key of length n in this hash,
- * returning a const pointer to the result if found or NULL otherwise
+/* look up this key of length n in this hash and return const pointer to the
+ * result if found or NULL otherwise
  */
 const struct hash_lookup_result * hash_lookup(
         struct hash * hash,
         const char * key,
         size_t length
     ) [[gnu::nonnull(1, 2)]];
-
 
 /* the statistics filled by hash_get_statistics */
 struct hash_statistics {
@@ -177,11 +195,15 @@ void hash_get_statistics(
 void hash_inputs_destroy(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]];
 
-/* grow the capacity of hash_inputs by n */
+/* grow the capacity of hash_inputs by n
+ *
+ * this affects how many items can be added to n before it has to realloc
+ * its internal memory
+ */
 void hash_inputs_grow(
         struct hash_inputs * hash_inputs, size_t n) [[gnu::nonnull(1)]];
 
-/* pre-allocate space in hash_inputs for at least n inputs */
+/* pre-allocate space in hash_inputs for at least n keys */
 void hash_inputs_at_least(
         struct hash_inputs * hash_inputs, size_t n) [[gnu::nonnull(1)]];
 
@@ -192,7 +214,7 @@ void hash_inputs_at_least(
  * be issued unless HASH_NO_WARNINGS
  *
  * this key must not already be in hash_inputs. if it is, the behavior of a
- * hash table generated from these inputs becomes undefined.
+ * hash table generated from these keys becomes undefined.
  *
  * see hash_inputs_add_safe(), but hash_inputs is not optimized for this case
  * (it does not sort itself) and so hash_inputs_add() is the preferred method
@@ -220,7 +242,7 @@ void hash_inputs_add_safe(
         void * ptr
     ) [[gnu::nonnull(1, 2)]];
 
-/* apply this function over every input*/
+/* apply this function over every key */
 void hash_inputs_apply(
         struct hash_inputs * hash_inputs,
         void (*fn)(const char * key, size_t length, void ** ptr)
