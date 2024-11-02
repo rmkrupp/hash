@@ -58,15 +58,23 @@
 #define HASH_PREALLOC_EDGES 0
 #endif /* HASH_PREALLOC_EDGES */
 
+/* turn this on to test worst-case runtime */
+//#define HASH_SIMULATE_WORST_CASE
+
 /* when adding hash inputs when space hasn't been preallocated by calls to
  * hash_inputs_grow and hash_inputs_at_least
  */
 constexpr size_t hash_inputs_grow_increment = 1;
 
-/* hash_create gives up after a number of iterations equal to this multiplier
- * multiplied by the number of keys
+/* hash_create gives up after the number of vertices has grown such that it
+ * exceeds this multiplied by the number of keys
+ *
+ * the value 650 was chosen such that, with a multiplier and divider for growth
+ * of 1075 and 1024 (though these don't have a huge effect, later iterations
+ * dominate) the worst-case runtime for 10,000 random keys of 64 bytes is about
+ * five seconds on my laptop. #science
  */
-constexpr size_t hash_iterations_max_multiplier = 100;
+constexpr size_t hash_iterations_max_multiplier = 650;
 
 /* hash_create increases the size of the graph after this number of iterations
  * (see the multiplier, though)
@@ -552,6 +560,10 @@ static hash_function_result hash_function_hash(
 [[nodiscard]] struct hash * hash_create(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
 {
+#ifdef HASH_SIMULATE_WORST_CASE
+    size_t n_okay = 0;
+#endif /* HASH_SIMULATE_WORST_CASE */
+
     size_t n_keys = hash_inputs->n_inputs;
 
     if (n_keys == 0) {
@@ -582,12 +594,24 @@ static hash_function_result hash_function_hash(
     *f2 = (struct hash_function) { };
 
     size_t iteration = 0;
-    size_t iteration_max = hash_iterations_max_multiplier * n_vertices;
+    size_t vertices_max = hash_iterations_max_multiplier * n_vertices;
 
     do {
         if (iteration % hash_iterations_grow_every_n_trials == 0) {
             if (iteration > 0) {
-                if (iteration >= iteration_max) {
+                // time to grow the size of the graph
+                n_vertices_scaled *= hash_iterations_growth_multiplier;
+                n_vertices_scaled /= hash_iterations_growth_multiplier_divider;
+
+                size_t n_vertices_next =
+                    n_vertices_scaled /
+                    hash_iterations_growth_multiplier_divider;
+
+                if (n_vertices_next > n_vertices) {
+                    n_vertices = n_vertices_next;
+                }
+
+                if (n_vertices >= vertices_max) {
 #if !defined(HASH_NO_WARNINGS) || !HASH_NO_WARNINGS
                     fprintf(
                             stderr,
@@ -601,18 +625,6 @@ static hash_function_result hash_function_hash(
                     free(f2);
                     graph_destroy(graph);
                     return NULL;
-                }
-
-                // time to grow the size of the graph
-                n_vertices_scaled *= hash_iterations_growth_multiplier;
-                n_vertices_scaled /= hash_iterations_growth_multiplier_divider;
-
-                size_t n_vertices_next = 
-                    n_vertices_scaled /
-                    hash_iterations_growth_multiplier_divider;
-
-                if (n_vertices_next > n_vertices) {
-                    n_vertices = n_vertices_next;
                 }
 
 #ifdef HASH_STATISTICS
@@ -671,7 +683,12 @@ static hash_function_result hash_function_hash(
 
             graph_biconnect(graph, r1, r2, i);
         }
+#ifdef HASH_SIMULATE_WORST_CASE
+        n_okay += graph_resolve(graph) ? 1 : 0;
+    } while (n_okay < vertices_max); /* make it think it's doing work */
+#else
     } while (!graph_resolve(graph));
+#endif /* HASH_SIMULATE_WORST_CASE */
 
 #ifndef NDEBUG
     for (size_t i = 0; i < n_keys; i++) {
