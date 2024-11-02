@@ -303,7 +303,6 @@ w.newline()
 #
 
 w.build('$builddir/hash.o', 'cc', 'src/hash.c')
-w.build('$builddir/util/strdup.o', 'cc', 'src/util/strdup.c')
 w.build('$builddir/test/test.o', 'cc', 'src/test/test.c')
 w.build('$builddir/test/reuse_test.o', 'cc', 'src/test/reuse_test.c')
 
@@ -345,7 +344,6 @@ target(
         name = 'test',
         inputs = [
             '$builddir/hash.o',
-            '$builddir/util/strdup.o',
             '$builddir/test/test.o'
         ],
         variables = [('libs', '')],
@@ -358,7 +356,6 @@ target(
         name = 'reuse_test',
         inputs = [
             '$builddir/hash.o',
-            '$builddir/util/strdup.o',
             '$builddir/test/reuse_test.o'
         ],
         variables = [('libs', '')],

@@ -28,11 +28,9 @@
  * but you can find the paper there (at cmph.sourceforge.net/papers/chm92.pdf)
  */
 
-#include "util/strdup.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 #include <assert.h>
 
 #if !defined(HASH_NO_WARNINGS) || !HASH_NO_WARNINGS
@@ -546,19 +544,10 @@ static hash_function_result hash_function_hash(
  * that state and can be affected by seeding with srand(). it does not call
  * srand().
  *
- * if this returns non-null, consider the hash_inputs not-for-use going
- * forward. notably, it should not be destroyed or free'd except by a call to
- * hash_destroy() on the returned table. if you want it back, and are done
- * with the table, call hash_recycle_inputs().
+ * if this returns non-null, the keys will have been removed from hash_inputs.
+ * it still needs to be free'd.
  *
- * adding keys to a hash_inputs that has already been passed to a table will
- * not, currently, break it, and hash_inputs_add() does not keep the string
- * pointer added to it (it makes its own copy) so changing it after is fine.
- *
- * if you do manage to change it, the hash may work unexpectedly, including
- * failing to match, because all lookups are validated by comparing against
- * the location where the string *should* be in the internal reference to
- * hash_inputs the hash table contains.
+ * if you want the inputs back, see hash_recycle_inputs
  */
 [[nodiscard]] struct hash * hash_create(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
@@ -826,8 +815,10 @@ const struct hash_lookup_result * hash_lookup(
         return NULL;
     }
 
-    if (strcmp(input->key, key) != 0) {
-        return NULL;
+    for (size_t i = 0; i < length; i++) {
+        if (input->key[i] != key[i]) {
+            return NULL;
+        }
     }
 
     return (const struct hash_lookup_result *)input;
@@ -889,10 +880,10 @@ void hash_inputs_at_least(
     }
 }
 
-/* add this string of the given length to this hash_inputs, associating it with
+/* add this key of the given length to this hash_inputs, associating it with
  * ptr
  *
- * a zero-length string cannot be hashed and will be ignored. A warning will
+ * a zero-length key cannot be hashed and will be ignored. A warning will
  * be issued unless HASH_NO_WARNINGS
  *
  * this key must not already be in hash_inputs. if it is, the behavior of a
@@ -913,7 +904,7 @@ void hash_inputs_add(
 #if !defined(HASH_NO_WARNINGS) && !HASH_NO_WARNINGS
         fprintf(
                 stderr,
-                "WARNING: hash_inputs_add() was called with a zero-length string\n"
+                "WARNING: hash_inputs_add() was called with a zero-length key\n"
             );
 #endif /* HASH_NO_WARNINGS */
         return;
@@ -924,10 +915,13 @@ void hash_inputs_add(
         hash_inputs_grow(hash_inputs, hash_inputs_grow_increment);
     }
     hash_inputs->inputs[hash_inputs->n_inputs] = (struct hash_input) {
-        .key = util_strndup(key, length),
+        .key = malloc(length),
         .length = length,
         .ptr = ptr
     };
+    for (size_t i = 0; i < length; i++) {
+        hash_inputs->inputs[hash_inputs->n_inputs].key[i] = key[i];
+    }
     hash_inputs->n_inputs++;
 }
 
@@ -947,7 +941,17 @@ void hash_inputs_add_safe(
     ) [[gnu::nonnull(1, 2)]]
 {
     for (size_t i = 0; i < hash_inputs->n_inputs; i++) {
-        if (strcmp(hash_inputs->inputs[i].key, key) == 0) {
+        if (hash_inputs->inputs[i].length != length) {
+            continue;
+        }
+        bool match = true;
+        for (size_t j = 0; j < length; j++) {
+            if (hash_inputs->inputs[i].key[j] != key[j]) {
+                match = false;
+                break;
+            }
+        }
+        if (match) {
 #ifdef HASH_STATISTICS
             hash_inputs->statistics.n_safe_adds_were_unsafe++;
 #endif /* HASH_STATISTICS */

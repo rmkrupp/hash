@@ -31,6 +31,9 @@
  * create a struct hash_inputs with hash_inputs_create(), add in the keys you
  * want to hash with hash_inputs_add(), and then turn them into a hash table
  * with hash_create
+ *
+ * keys are always given with a length and may contain any value, including
+ * embedded null bytes.
  */
 
 /*
@@ -179,10 +182,10 @@ void hash_inputs_grow(
 void hash_inputs_at_least(
         struct hash_inputs * hash_inputs, size_t n) [[gnu::nonnull(1)]];
 
-/* add this string of the given length to this hash_inputs, associating it with
+/* add this key of the given length to this hash_inputs, associating it with
  * ptr
  *
- * a zero-length string cannot be hashed and will be ignored. A warning will
+ * a zero-length key cannot be hashed and will be ignored. A warning will
  * be issued unless HASH_NO_WARNINGS
  *
  * this key must not already be in hash_inputs. if it is, the behavior of a
