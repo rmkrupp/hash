@@ -41,7 +41,6 @@
 
 /*
  * TODO for version 1.0:
- *  - document statistics
  *  - document tuning values
  *  - grow stategies for edges
  *  - should there be a grow increment for edges? (multiplicative realloc?)
@@ -50,6 +49,7 @@
  *  - should we do unsigned chars? does the hash handle embedded zero bytes
  *    fine everywhere? (look for strdup/strndup and change)
  *  - go over documentation one more time
+ *  - check TODOs
  */
 
 /*
