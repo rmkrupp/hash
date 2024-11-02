@@ -41,8 +41,6 @@
 
 /*
  * TODO for version 1.0:
- *  - should there be a grow increment for edges? (multiplicative realloc?)
- *      (at least optionally?)
  *  - should we do unsigned chars? does the hash handle embedded zero bytes
  *    fine everywhere? (look for strdup/strndup and change)
  *  - go over documentation one more time
@@ -54,7 +52,7 @@
  */
 
 #ifndef HASH_PREALLOC_EDGES
-#define HASH_PREALLOC_EDGES 0
+#define HASH_PREALLOC_EDGES 12
 #endif /* HASH_PREALLOC_EDGES */
 
 /* turn this on to test worst-case runtime */
@@ -91,10 +89,16 @@ constexpr size_t hash_iterations_growth_multiplier_divider = 1024;
 
 /* this is a tuning value that causes some number of edges to be preallocated
  * for every vertex. generally, the number needed (for, say, 100k keys) is
- * between 0 and 12 per vertex. set it somewhere between this, causing the
+ * between 0 and 12 per vertex*. set it somewhere between this, causing the
  * hash to use more memory in exchange for calling realloc less.
  *
- * note: testing has not shown this to be a good idea, at least on Linux
+ * in the case of 100k keys of 64 bytes, the improvement for a prealloc of
+ * 12 is just under 5%. this results in an unneeded_edges_allocated of about
+ * 150k, or about 2.3MB of extra memory usage (to run the function, this does
+ * not persist after hash_create() returns.)
+ *
+ * *technically, it's sometimes 13 or 14, which in all observed cases resulted
+ * in <5 re-allocations--not a number worth worrying about.
  */
 [[maybe_unused]] constexpr size_t hash_prealloc_edges = HASH_PREALLOC_EDGES;
 
@@ -982,4 +986,3 @@ void hash_inputs_get_statistics(
     *statistics = (struct hash_inputs_statistics) { };
 #endif /* HASH_STATISTICS */
 }
-
