@@ -41,8 +41,6 @@
 
 /*
  * TODO for version 1.0:
- *  - document tuning values
- *  - grow stategies for edges
  *  - should there be a grow increment for edges? (multiplicative realloc?)
  *      (at least optionally?)
  *  - Test de-pointerifying the hash functions
@@ -615,8 +613,6 @@ static hash_function_result hash_function_hash(
 
                 if (n_vertices_next > n_vertices) {
                     n_vertices = n_vertices_next;
-                } else {
-                    n_vertices += 1;
                 }
 
 #ifdef HASH_STATISTICS
