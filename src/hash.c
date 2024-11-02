@@ -60,11 +60,37 @@
 #define HASH_PREALLOC_EDGES 4
 #endif /* HASH_PREALLOC_EDGES */
 
+/* when adding hash inputs when space hasn't been preallocated by calls to
+ * hash_inputs_grow and hash_inputs_at_least
+ */
 constexpr size_t hash_inputs_grow_increment = 1;
+
+/* hash_create gives up after a number of iterations equal to this multiplier
+ * multiplied by the number of keys
+ */
 constexpr size_t hash_iterations_max_multiplier = 100;
+
+/* hash_create increases the size of the graph after this number of iterations
+ * (see the multiplier, though)
+ */
 constexpr size_t hash_iterations_grow_every_n_trials = 5;
+
+/* internally, hash_create keeps an graph size counter scaled by the divider,
+ * and increases it by the formula:
+ *   next = (current * multiplier) / divider
+ * and derives the actual size by dividing it by the divider again and throwing
+ * out the remainder.
+ */
 constexpr size_t hash_iterations_growth_multiplier = 1075;
 constexpr size_t hash_iterations_growth_multiplier_divider = 1024;
+
+/* this is a tuning value that causes some number of edges to be preallocated
+ * for every vertex. generally, the number needed (for, say, 100k keys) is
+ * between 0 and 12 per vertex. set it somewhere between this, causing the
+ * hash to use more memory in exchange for calling realloc less.
+ *
+ * note: testing has not shown this to be a good idea, at least on Linux
+ */
 [[maybe_unused]] constexpr size_t hash_prealloc_edges = HASH_PREALLOC_EDGES;
 
 /*
