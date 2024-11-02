@@ -57,7 +57,7 @@
  */
 
 #ifndef HASH_PREALLOC_EDGES
-#define HASH_PREALLOC_EDGES 4
+#define HASH_PREALLOC_EDGES 0
 #endif /* HASH_PREALLOC_EDGES */
 
 /* when adding hash inputs when space hasn't been preallocated by calls to
