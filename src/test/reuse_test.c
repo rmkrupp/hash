@@ -32,6 +32,7 @@ int main(int argc, char ** argv)
     srand(time(NULL));
 
     struct hash_inputs * hash_inputs = hash_inputs_create();
+    hash_inputs_at_least(hash_inputs, 100000);
 
     FILE * f = fopen("keys", "r");
     char * buffer = malloc(1024);
