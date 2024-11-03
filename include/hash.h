@@ -77,7 +77,7 @@ struct hash_lookup_result {
  * if this returns non-null, the keys will have been removed from hash_inputs.
  * it still needs to be free'd.
  *
- * if you want the keys back, see hash_recycle_inputs, hash_get_inputs, and
+ * if you want the keys back, see hash_recycle_inputs, hash_get_keys, and
  * hash_inputs_from_hash.
  */
 [[nodiscard]] struct hash * hash_create(
@@ -107,7 +107,7 @@ struct hash_inputs * hash_recycle_inputs(
 /* returns a pointer to the keys inside this hash table and, if n_keys_out
  * is non-NULL, sets it to the number of keys
  */
-struct hash_lookup_result * hash_get_keys(
+const struct hash_lookup_result * hash_get_keys(
         struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]];
 
 /* apply this function over every key this hash was created with */

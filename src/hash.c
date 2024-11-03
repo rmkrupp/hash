@@ -101,8 +101,6 @@ constexpr size_t hash_iterations_growth_multiplier_divider = 1024;
 typedef ssize_t hash_function_result;
 
 /* the state describing a hash function
- *
- * salt is ints because rand() makes ints
  */
 struct hash_function {
     size_t * salt;
@@ -640,7 +638,9 @@ static hash_function_result hash_function_hash(
                     sizeof(*f1.salt) * f1.salt_capacity;
                 graph->statistics.total_memory_allocated +=
                     sizeof(*f1.salt) * length;
-                graph->statistics.rand_calls += (length - f1.salt_capacity);
+            }
+            if (f1.salt_length < length) {
+                graph->statistics.rand_calls += (length - f1.salt_length);
             }
             if (length > f2.salt_capacity) {
                 graph->statistics.reallocs_salt++;
@@ -651,7 +651,9 @@ static hash_function_result hash_function_hash(
                     sizeof(*f2.salt) * f2.salt_capacity;
                 graph->statistics.total_memory_allocated +=
                     sizeof(*f2.salt) * length;
-                graph->statistics.rand_calls += (length - f2.salt_capacity);
+            }
+            if (f2.salt_length < length) {
+                graph->statistics.rand_calls += (length - f2.salt_length);
             }
             graph->statistics.hashes_calculated += 2;
 #endif /* HASH_STATISTICS */
@@ -774,7 +776,7 @@ struct hash_inputs * hash_recycle_inputs(
 /* returns a pointer to the keys inside this hash table and, if n_keys_out
  * is non-NULL, sets it to the number of keys
  */
-struct hash_lookup_result * hash_get_keys(
+const struct hash_lookup_result * hash_get_keys(
         struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]]
 {
     if (n_keys_out) {
