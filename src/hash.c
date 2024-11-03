@@ -888,6 +888,22 @@ void hash_inputs_destroy(
     free(hash_inputs);
 }
 
+/* destroy a hash_inputs structure without free'ing its keys
+ *
+ * use this in conjunction with hash_inputs_add_no_copy()
+ *
+ * if hash_inputs_add() or hash_inputs_add_safe() have been called on this
+ * hash_inputs (or if they were called on any of its parents and
+ * hash_reycle_inputs() is involved), calling this function will leak memory.
+ */
+void hash_inputs_destroy_except_keys(
+        struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
+{
+    free(hash_inputs->inputs);
+    free(hash_inputs);
+}
+
+
 /* grow the capacity of hash_inputs by n
  *
  * this affects how many items can be added to n before it has to realloc
@@ -998,6 +1014,48 @@ void hash_inputs_add_safe(
     hash_inputs->statistics.n_safe_adds_were_safe++;
 #endif /* HASH_STATISTICS */
     hash_inputs_add(hash_inputs, key, length, ptr);
+}
+
+/* see hash_inputs_add
+ *
+ * this does not make a copy of key and so the key passed must not be free'd
+ * except by a call to hash_inputs_destroy() (or, eventually, hash_destroy.)
+ *
+ * notably, this also does not guarantee that the key will be null-terminated.
+ *
+ * if you don't want hash_inputs_destroy() to destroy them, use
+ * hash_inputs_destroy_except_keys()
+ *
+ * if you don't want hash_destroy() to destroy them, use hash_recycle_inputs().
+ */
+void hash_inputs_add_no_copy(
+        struct hash_inputs * hash_inputs,
+        char * key,
+        size_t length,
+        void * ptr
+    ) [[gnu::nonnull(1, 2)]]
+{
+    if (!length) {
+#if !defined(HASH_NO_WARNINGS)
+        fprintf(
+                stderr,
+                "WARNING: hash_inputs_add_no_copy() was called with a zero-length key\n"
+            );
+#endif /* HASH_NO_WARNINGS */
+        return;
+    }
+
+    assert(hash_inputs->n_inputs <= hash_inputs->capacity);
+    if (hash_inputs->n_inputs == hash_inputs->capacity) {
+        hash_inputs_grow(hash_inputs, hash_inputs_grow_increment);
+    }
+    hash_inputs->inputs[hash_inputs->n_inputs] = (struct hash_input) {
+        .key = key,
+        .length = length,
+        .ptr = ptr
+    };
+
+    hash_inputs->n_inputs++;
 }
 
 /* apply this function over every key */
