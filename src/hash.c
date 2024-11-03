@@ -35,7 +35,7 @@
 #include <assert.h>
 #include <assert.h>
 
-#if !defined(HASH_NO_WARNINGS) || !HASH_NO_WARNINGS
+#if !defined(HASH_NO_WARNINGS)
 #include <stdio.h>
 #endif /* HASH_NO_WARNINGS */
 
@@ -590,7 +590,7 @@ static hash_function_result hash_function_hash(
                 }
 
                 if (n_vertices >= vertices_max) {
-#if !defined(HASH_NO_WARNINGS) || !HASH_NO_WARNINGS
+#if !defined(HASH_NO_WARNINGS)
                     fprintf(
                             stderr,
                             "WARNING: hash_create() ran for more than size * hash_iteration_max_multiplier iterations (%lu) without a solution\n",
@@ -952,7 +952,7 @@ void hash_inputs_add(
     ) [[gnu::nonnull(1, 2)]]
 {
     if (!length) {
-#if !defined(HASH_NO_WARNINGS) && !HASH_NO_WARNINGS
+#if !defined(HASH_NO_WARNINGS)
         fprintf(
                 stderr,
                 "WARNING: hash_inputs_add() was called with a zero-length key\n"
@@ -992,6 +992,15 @@ void hash_inputs_add_safe(
         void * ptr
     ) [[gnu::nonnull(1, 2)]]
 {
+    if (!length) {
+#if !defined(HASH_NO_WARNINGS)
+        fprintf(
+                stderr,
+                "WARNING: hash_inputs_add_safe() was called with a zero-length key\n"
+            );
+        return;
+#endif /* HASH_NO_WARNINGS */
+    }
     for (size_t i = 0; i < hash_inputs->n_inputs; i++) {
         if (hash_inputs->inputs[i].length != length) {
             continue;
