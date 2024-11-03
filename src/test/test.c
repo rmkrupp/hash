@@ -69,8 +69,10 @@ int main(int argc, char ** argv)
 
     struct hash_inputs_statistics hash_inputs_statistics;
     hash_inputs_get_statistics(hash_inputs, &hash_inputs_statistics);
-    printf("[instats] n_growths = %lu\n", hash_inputs_statistics.n_growths);
-    printf("[instats] capacity = %lu\n", hash_inputs_statistics.capacity);
+    printf("[instats] n_growths = %lu\n",
+            (unsigned long)hash_inputs_statistics.n_growths);
+    printf("[instats] capacity = %lu\n",
+            (unsigned long)hash_inputs_statistics.capacity);
 
     f = fopen("keys", "w");
     hash_inputs_apply(hash_inputs, dump_to_file);

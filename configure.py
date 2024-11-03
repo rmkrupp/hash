@@ -79,6 +79,7 @@ def exesuffix(root, enabled):
         return root
 
 def enable_debug():
+    w.variable(key = 'std', value = '-std=gnu23')
     w.variable(key = 'cflags', value = '$cflags $sanflags -g -Og')
     if not args.force_version:
         w.variable(key = 'version', value = '"$version"-debug')
@@ -86,6 +87,7 @@ def enable_debug():
         w.comment('not appending -debug because we were generated with --force-version=')
 
 def enable_release():
+    w.variable(key = 'std', value = '-std=gnu23')
     if (args.O3):
         w.comment('setting -O3 because we were generated with --O3')
         w.variable(key = 'cflags', value = '$cflags -O3')
@@ -95,6 +97,7 @@ def enable_release():
 
 def enable_w64():
     args.disable_argp = True
+    w.variable(key = 'std', value = '-std=gnu2x')
     w.variable(key = 'cflags', value = '$cflags -O2 -static -I/usr/x86_64-w64-mingw32/include')
     w.variable(key = 'ldflags', value = '$ldflags -L/usr/x86_64-w64-mingw32/lib')
     w.variable(key = 'defines', value = '$defines -DNDEBUG')
@@ -290,7 +293,7 @@ w.rule(
         name = 'cc',
         deps = 'gcc',
         depfile = '$out.d',
-        command = '$cc -std=gnu23 $includes -MMD -MF $out.d $defines ' +
+        command = '$cc $std $includes -MMD -MF $out.d $defines ' +
                   '$cflags $in -c -o $out'
     )
 w.newline()
@@ -299,14 +302,14 @@ w.rule(
         name = 'bin',
         deps = 'gcc',
         depfile = '$out.d',
-        command = '$cc -std=gnu23 $includes -MMD -MF $out.d $defines ' +
+        command = '$cc $std $includes -MMD -MF $out.d $defines ' +
                   '$cflags $in -o $out $ldflags $libs'
     )
 w.newline()
 
 w.rule(
         name = 'static-library',
-        command = '$ar rcs $out $in $ldflags $libs'
+        command = '$ar rcs $out $in $arflags'
     )
 w.newline()
 
