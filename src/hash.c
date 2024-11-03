@@ -596,7 +596,7 @@ static hash_function_result hash_function_hash(
                     fprintf(
                             stderr,
                             "WARNING: hash_create() ran for more than size * hash_iteration_max_multiplier iterations (%lu) without a solution\n",
-                            iteration
+                            (unsigned long)iteration
                         );
 #endif /* HASH_NO_WARNINGS */
                     free(f1.salt);
