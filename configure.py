@@ -331,7 +331,11 @@ all_targets = []
 tools_targets = []
 
 def target(name, inputs, targets=[], variables=[], is_disabled=False, why_disabled='', rule='bin'):
-    fullname = exesuffix(name, args.build == 'w64')
+
+    if rule == 'bin':
+        fullname = exesuffix(name, args.build == 'w64')
+    else:
+        fullname = name
 
     if type(is_disabled) == bool:
         is_disabled = [is_disabled]
