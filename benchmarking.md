@@ -23,9 +23,9 @@ Sum of 100 runs over ~100k pre-generated 64-byte keys
 ```
 
 ```
--O3 -march=native == -O3 -march=native -mtune=native
-(all -O2 options) == -O3 -mtune=native
--O3
+[82%] -O3 -march=native == -O3 -march=native -mtune=native
+[100%] (all -O2 options) == -O3 -mtune=native
+[111%] -O3
 ```
 
 ### DESKTOP (Intel((R) Core(TM) i7-4790K)
@@ -42,11 +42,10 @@ Sum of 100 runs over ~100k pre-generated 64-byte keys
 ```
 
 ```
--03 -mtune=native
--O2 -mtune=native
--O2 == -O2 -march=narch == -O2 -march=native -mtune=native
--O3 -march=natve == -O3 -mtune=native -march=native
--O3
+[92%] -03 -mtune=native
+[100%] (all -O2 options)
+[104%] -O3 -march=natve == -O3 -mtune=native -march=native
+[110%] -O3
 ```
 
 ### WHITE LAPTOP (Intel(R) Core(TM) M-5Y71)
@@ -63,8 +62,6 @@ Sum of 100 runs over ~100k pre-generated 64-byte keys
 ```
 
 ```
--O3 -march=native -mtune=native
--O2
--O2 -march=native == -O3 -march=native == -O3 -mtune=native
--O2 -mtune=native == -02 -march=native -mtune=native
+[100%] -O2 == -O2 -march=native == -O3 -march=native == -O3 -mtune=native == -O3 -march=native -mtune=native
+[107%] -O2 -mtune=native == -02 -march=native -mtune=native == -O3
 ```
