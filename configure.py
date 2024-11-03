@@ -44,8 +44,10 @@ parser.add_argument('--build',
                     choices=['release', 'debug', 'w64'], default='debug',
                     help='set the build type (default: debug)')
 parser.add_argument('--build-native',
-                    choices=['none', 'mtune', 'march'], default='none',
+                    choices=['none', 'mtune', 'march', 'both'], default='none',
                     help='build with mtune=native or march=native')
+parser.add_argument('--O3', '--o3', action='store_true',
+                    help='build releases with -O3')
 parser.add_argument('--disable-static-library', action='store_true',
                     help='don\'t build hash.a')
 parser.add_argument('--disable-tool', action='append', default=[],
@@ -84,7 +86,11 @@ def enable_debug():
         w.comment('not appending -debug because we were generated with --force-version=')
 
 def enable_release():
-    w.variable(key = 'cflags', value = '$cflags -O2')
+    if (args.O3):
+        w.comment('setting -O3 because we were generated with --O3')
+        w.variable(key = 'cflags', value = '$cflags -O3')
+    else:
+        w.variable(key = 'cflags', value = '$cflags -O2')
     w.variable(key = 'defines', value = '$defines -DNDEBUG')
 
 def enable_w64():
@@ -178,6 +184,9 @@ elif args.build_native == 'mtune':
 elif args.build_native == 'march':
     w.comment('# adding cflags for --build-native=march')
     w.variable(key = 'cflags', value = '$cflags -march=native')
+elif args.build_native == 'both':
+    w.comment('# adding cflags for --build-native=both')
+    w.variable(key = 'cflags', value = '$cflags -march=native -mtune=native')
 else:
     print('WARNING: unhandled build-native mode "' + args.build_native + '"', file=sys.stderr)
     w.comment('WARNING: unhandled build-native mode "' + args.build_native +'"')
@@ -207,6 +216,9 @@ w.newline()
 #
 
 if args.build == 'debug':
+    if args.O3:
+        print('WARNING: ignoring option --O3 for debug build', file=sys.stderr)
+        w.comment('WARNING: ignoring option --O3 for debug build')
     w.comment('build mode: debug')
     enable_debug()
 elif args.build == 'release':
