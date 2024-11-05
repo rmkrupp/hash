@@ -506,7 +506,41 @@ static hash_function_result hash_function_hash(
     hash_function_result sum = 0;
     for (size_t i = 0; i < length; i++) {
         hash_function_result x =
-            (hash_function_result)(unsigned char)key[i] * 
+            (hash_function_result)(unsigned char)key[i] *
+            (hash_function_result)hash_function->salt[i];
+        assert(x >= 0);
+        assert((sum + x) >= sum);
+        sum += x;
+    }
+
+    assert(sum >= 0);
+
+    sum = sum % hash_function->n;
+
+    return sum;
+}
+
+/* apply this hash function to this key of length
+ *
+ * will never add salt (if not NDEBUG, triggers an assert instead)
+ *
+ * use this on a completed hash for lookups (hash_lookup checks lookup length
+ * vs the salt_length of the hashes)
+ */
+static hash_function_result hash_function_hash_const(
+        const struct hash_function * hash_function,
+        const char * key,
+        size_t length
+    ) [[gnu::nonnull(1)]]
+{
+    if (hash_function->salt_length < length) {
+        assert(0);
+    }
+
+    hash_function_result sum = 0;
+    for (size_t i = 0; i < length; i++) {
+        hash_function_result x =
+            (hash_function_result)(unsigned char)key[i] *
             (hash_function_result)hash_function->salt[i];
         assert(x >= 0);
         assert((sum + x) >= sum);
@@ -623,7 +657,7 @@ static hash_function_result hash_function_hash(
 
         hash_function_reset(&f1, n_vertices);
         hash_function_reset(&f2, n_vertices);
-        
+
         for (size_t i = 0; i < n_keys; i++) {
             const char * key = hash_inputs->inputs[i].key;
             size_t length = hash_inputs->inputs[i].length;
@@ -783,7 +817,7 @@ struct hash_inputs * hash_recycle_inputs(
  * is non-NULL, sets it to the number of keys
  */
 const struct hash_lookup_result * hash_get_keys(
-        struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]]
+        const struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]]
 {
     if (n_keys_out) {
         *n_keys_out = hash->keys.n_inputs;
@@ -793,7 +827,7 @@ const struct hash_lookup_result * hash_get_keys(
 
 /* apply this function over every key this hash was created with */
 void hash_apply(
-        struct hash * hash,
+        const struct hash * hash,
         void (*fn)(const char * s, size_t key, void ** ptr)
     ) [[gnu::nonnull(1, 2)]]
 {
@@ -804,7 +838,7 @@ void hash_apply(
  * result if found or NULL otherwise
  */
 const struct hash_lookup_result * hash_lookup(
-        struct hash * hash,
+        const struct hash * hash,
         const char * key,
         size_t length
     ) [[gnu::nonnull(1, 2)]]
@@ -816,8 +850,8 @@ const struct hash_lookup_result * hash_lookup(
         return NULL;
     }
 
-    hash_function_result r1 = hash_function_hash(&hash->f1, key, length);
-    hash_function_result r2 = hash_function_hash(&hash->f2, key, length);
+    hash_function_result r1 = hash_function_hash_const(&hash->f1, key, length);
+    hash_function_result r2 = hash_function_hash_const(&hash->f2, key, length);
     hash_function_result i = hash->values[r1] + hash->values[r2];
 
     assert(i >= 0);
@@ -1082,7 +1116,7 @@ void hash_inputs_add_no_copy(
 
 /* apply this function over every key */
 void hash_inputs_apply(
-        struct hash_inputs * hash_inputs,
+        const struct hash_inputs * hash_inputs,
         void (*fn)(const char * key, size_t length, void ** ptr)
     ) [[gnu::nonnull(1, 2)]]
 {

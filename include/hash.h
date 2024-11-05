@@ -111,11 +111,11 @@ struct hash_inputs * hash_recycle_inputs(
  * is non-NULL, sets it to the number of keys
  */
 const struct hash_lookup_result * hash_get_keys(
-        struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]];
+        const struct hash * hash, size_t * n_keys_out) [[gnu::nonnull(1)]];
 
 /* apply this function over every key this hash was created with */
 void hash_apply(
-        struct hash * hash,
+        const struct hash * hash,
         void (*fn)(const char * key, size_t length, void ** ptr)
     ) [[gnu::nonnull(1, 2)]];
 
@@ -123,7 +123,7 @@ void hash_apply(
  * result if found or NULL otherwise
  */
 const struct hash_lookup_result * hash_lookup(
-        struct hash * hash,
+        const struct hash * hash,
         const char * key,
         size_t length
     ) [[gnu::nonnull(1, 2)]];
@@ -281,7 +281,7 @@ void hash_inputs_add_no_copy(
 
 /* apply this function over every key */
 void hash_inputs_apply(
-        struct hash_inputs * hash_inputs,
+        const struct hash_inputs * hash_inputs,
         void (*fn)(const char * key, size_t length, void ** ptr)
     ) [[gnu::nonnull(1, 2)]];
 
