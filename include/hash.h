@@ -117,7 +117,7 @@ const struct hash_lookup_result * hash_get_keys(
 void hash_apply(
         const struct hash * hash,
         void (*fn)(
-            const char * key, size_t length, void ** dataptr, void * ptr),
+            const char * key, size_t length, void * data, void * ptr),
         void * ptr
     ) [[gnu::nonnull(1, 2)]];
 
@@ -285,7 +285,7 @@ void hash_inputs_add_no_copy(
 void hash_inputs_apply(
         const struct hash_inputs * hash_inputs,
         void (*fn)(
-            const char * key, size_t length, void ** dataptr, void * ptr),
+            const char * key, size_t length, void * data, void * ptr),
         void * ptr
     ) [[gnu::nonnull(1, 2)]];
 

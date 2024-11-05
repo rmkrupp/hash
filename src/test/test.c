@@ -26,10 +26,10 @@
 
 FILE * f = NULL;
 
-void dump_to_file(const char * key, size_t length, void ** dataptr, void * ptr)
+void dump_to_file(const char * key, size_t length, void * data, void * ptr)
 {
     (void)length;
-    (void)dataptr;
+    (void)data;
     (void)ptr;
     fprintf(f, "%s\n", key);
 }
