@@ -1126,7 +1126,7 @@ void hash_inputs_apply(
 {
     for (size_t i = 0; i < hash_inputs->n_inputs; i++) {
         struct hash_input * input = &hash_inputs->inputs[i];
-        fn(input->key, input->length, &input->ptr, ptr);
+        fn(input->key, input->length, input->ptr, ptr);
     }
 }
 
