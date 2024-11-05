@@ -26,10 +26,11 @@
 
 FILE * f = NULL;
 
-void dump_to_file(const char * key, size_t length, void ** ptr)
+void dump_to_file(const char * key, size_t length, void ** dataptr, void * ptr)
 {
-    (void)ptr;
     (void)length;
+    (void)dataptr;
+    (void)ptr;
     fprintf(f, "%s\n", key);
 }
 
@@ -75,7 +76,7 @@ int main(int argc, char ** argv)
             (unsigned long)hash_inputs_statistics.capacity);
 
     f = fopen("keys", "w");
-    hash_inputs_apply(hash_inputs, dump_to_file);
+    hash_inputs_apply(hash_inputs, dump_to_file, NULL);
     fclose(f);
 
     struct hash * hash = hash_create(hash_inputs);

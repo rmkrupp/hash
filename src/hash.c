@@ -828,10 +828,12 @@ const struct hash_lookup_result * hash_get_keys(
 /* apply this function over every key this hash was created with */
 void hash_apply(
         const struct hash * hash,
-        void (*fn)(const char * s, size_t key, void ** ptr)
+        void (*fn)(
+            const char * key, size_t length, void ** dataptr, void * ptr),
+        void * ptr
     ) [[gnu::nonnull(1, 2)]]
 {
-    hash_inputs_apply(&hash->keys, fn);
+    hash_inputs_apply(&hash->keys, fn, ptr);
 }
 
 /* look up this key of length n in this hash and return a const pointer to the
@@ -1117,12 +1119,14 @@ void hash_inputs_add_no_copy(
 /* apply this function over every key */
 void hash_inputs_apply(
         const struct hash_inputs * hash_inputs,
-        void (*fn)(const char * key, size_t length, void ** ptr)
+        void (*fn)(
+            const char * key, size_t length, void ** dataptr, void * ptr),
+        void * ptr
     ) [[gnu::nonnull(1, 2)]]
 {
     for (size_t i = 0; i < hash_inputs->n_inputs; i++) {
         struct hash_input * input = &hash_inputs->inputs[i];
-        fn(input->key, input->length, &input->ptr);
+        fn(input->key, input->length, &input->ptr, ptr);
     }
 }
 

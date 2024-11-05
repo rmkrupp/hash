@@ -116,7 +116,9 @@ const struct hash_lookup_result * hash_get_keys(
 /* apply this function over every key this hash was created with */
 void hash_apply(
         const struct hash * hash,
-        void (*fn)(const char * key, size_t length, void ** ptr)
+        void (*fn)(
+            const char * key, size_t length, void ** dataptr, void * ptr),
+        void * ptr
     ) [[gnu::nonnull(1, 2)]];
 
 /* look up this key of length n in this hash and return const pointer to the
@@ -282,7 +284,9 @@ void hash_inputs_add_no_copy(
 /* apply this function over every key */
 void hash_inputs_apply(
         const struct hash_inputs * hash_inputs,
-        void (*fn)(const char * key, size_t length, void ** ptr)
+        void (*fn)(
+            const char * key, size_t length, void ** dataptr, void * ptr),
+        void * ptr
     ) [[gnu::nonnull(1, 2)]];
 
 /* the statistics filled by hash_inputs_get_statistics */
