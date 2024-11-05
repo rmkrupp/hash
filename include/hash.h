@@ -94,6 +94,9 @@ struct hash_lookup_result {
 /* destroy this hash table */
 void hash_destroy(struct hash * hash) [[gnu::nonnull(1)]];
 
+/* returns the number of keys in this hash */
+size_t hash_n_keys(const struct hash * hash) [[gnu::nonnull(1)]];
+
 /* destroy this hash table, but extract the hash_inputs it was created with
  * first and return it for modification and reuse
  *
@@ -194,6 +197,10 @@ void hash_get_statistics(
 /* destroy a hash_inputs structure */
 void hash_inputs_destroy(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]];
+
+/* returns the number of keys in this hash_inputs */
+size_t hash_inputs_n_keys(
+        const struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]];
 
 /* destroy a hash_inputs structure without free'ing its keys
  *

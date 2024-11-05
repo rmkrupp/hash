@@ -756,6 +756,12 @@ void hash_destroy(struct hash * hash) [[gnu::nonnull(1)]]
     free(hash);
 }
 
+/* returns the number of keys in this hash */
+size_t hash_n_keys(const struct hash * hash) [[gnu::nonnull(1)]]
+{
+    return hash->keys.n_inputs;
+}
+
 /* destroy this hash table, but extract the hash_inputs it was created with
  * first and return it for modification and reuse
  *
@@ -875,6 +881,13 @@ void hash_get_statistics(
         hash_inputs->inputs[i] = hash->keys.inputs[i];
     }
     return hash_inputs;
+}
+
+/* returns the number of keys in this hash_inputs */
+size_t hash_inputs_n_keys(
+        const struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]]
+{
+    return hash_inputs->n_inputs;
 }
 
 /* destroy a hash_inputs structure */
