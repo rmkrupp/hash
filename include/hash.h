@@ -289,6 +289,17 @@ void hash_inputs_apply(
         void * ptr
     ) [[gnu::nonnull(1, 2)]];
 
+/* apply this function over every key and then destroy the hash inputs
+ * (without free'ing the keys, since this is designed to let them escape via
+ * the apply)
+ */
+void hash_inputs_apply_and_destroy(
+        struct hash_inputs * hash_inputs,
+        void (*fn)(
+            char * key, size_t length, void * data, void * ptr),
+        void * ptr
+    ) [[gnu::nonnull(1, 2)]];
+
 /* the statistics filled by hash_inputs_get_statistics */
 struct hash_inputs_statistics {
     size_t n_growths; /* how many times did the pool get grown by:

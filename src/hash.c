@@ -1130,6 +1130,25 @@ void hash_inputs_apply(
     }
 }
 
+/* apply this function over every key and then destroy the hash inputs
+ * (without free'ing the keys, since this is designed to let them escape via
+ * the apply)
+ */
+void hash_inputs_apply_and_destroy(
+        struct hash_inputs * hash_inputs,
+        void (*fn)(
+            char * key, size_t length, void * data, void * ptr),
+        void * ptr
+    ) [[gnu::nonnull(1, 2)]]
+{
+    for (size_t i = 0; i < hash_inputs->n_inputs; i++) {
+        struct hash_input * input = &hash_inputs->inputs[i];
+        fn(input->key, input->length, input->ptr, ptr);
+    }
+    free(hash_inputs->inputs);
+    free(hash_inputs);
+}
+
 /* fill statistics with statistics on this hash_inputs */
 void hash_inputs_get_statistics(
         struct hash_inputs * hash_inputs,
