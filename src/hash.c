@@ -627,8 +627,8 @@ static hash_function_result hash_function_hash_const(
 #if !defined(HASH_NO_WARNINGS)
                     fprintf(
                             stderr,
-                            "WARNING: hash_create() ran for more than size * hash_iteration_max_multiplier iterations (%lu) without a solution\n",
-                            (unsigned long)iteration
+                            "WARNING: hash_create() ran for more than size * hash_iteration_max_multiplier iterations (%zu) without a solution\n",
+                            iteration
                         );
 #endif /* HASH_NO_WARNINGS */
                     free(f1.salt);
