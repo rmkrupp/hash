@@ -56,7 +56,7 @@ struct hash;
 /* a list of keys to create a hash_table with */
 struct hash_inputs;
 
-/* the result of a hash_lookup[() */
+/* the result of a hash_lookup() */
 struct hash_lookup_result {
     const char * key; /* the key, null terminated */
     size_t length; /* the length of key, not including the terminator */
