@@ -533,9 +533,7 @@ static hash_function_result hash_function_hash_const(
         size_t length
     ) [[gnu::nonnull(1)]]
 {
-    if (hash_function->salt_length < length) {
-        assert(0);
-    }
+    assert(hash_function->salt_length >= length);
 
     hash_function_result sum = 0;
     for (size_t i = 0; i < length; i++) {
@@ -847,8 +845,9 @@ const struct hash_lookup_result * hash_lookup(
 {
     assert(hash->f1.n == hash->n_values);
     assert(hash->f2.n == hash->n_values);
+    assert(hash->f1.salt_length == hash->f2.salt_length);
 
-    if (length > hash->f1.salt_length || length > hash->f2.salt_length) {
+    if (length > hash->f1.salt_length) {
         return NULL;
     }
 
