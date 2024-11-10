@@ -83,14 +83,6 @@ struct hash_lookup_result {
 [[nodiscard]] struct hash * hash_create(
         struct hash_inputs * hash_inputs) [[gnu::nonnull(1)]];
 
-/* create a hash_inputs structure containing all the keys in this hash
- *
- * note that if you are done with the hash, hash_recycles_inputs is more
- * efficient because it recycles the keys in place.
- */
-[[nodiscard]] struct hash_inputs * hash_inputs_from_hash(
-        struct hash * hash) [[gnu::nonnull(1)]];
-
 /* destroy this hash table */
 void hash_destroy(struct hash * hash) [[gnu::nonnull(1)]];
 
@@ -195,6 +187,14 @@ void hash_get_statistics(
 
 /* create an empty hash_inputs structure */
 [[nodiscard]] struct hash_inputs * hash_inputs_create();
+
+/* create a hash_inputs structure containing all the keys in this hash
+ *
+ * note that if you are done with the hash, hash_recycles_inputs is more
+ * efficient because it recycles the keys in place.
+ */
+[[nodiscard]] struct hash_inputs * hash_inputs_from_hash(
+        struct hash * hash) [[gnu::nonnull(1)]];
 
 /* destroy a hash_inputs structure */
 void hash_inputs_destroy(
