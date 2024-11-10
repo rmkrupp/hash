@@ -916,6 +916,7 @@ void hash_get_statistics(
     for (size_t i = 0; i < hash->keys.n_inputs; i++) {
         hash_inputs->inputs[i] = hash->keys.inputs[i];
     }
+    hash_inputs->n_inputs = hash->keys.n_inputs;
     return hash_inputs;
 }
 
