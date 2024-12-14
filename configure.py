@@ -169,7 +169,7 @@ else:
 
 if args.cflags:
     w.comment('these are overriden below because we were generated with --cflags=' + args.cflags)
-w.variable(key = 'cflags', value = '-Wall -Wextra -Werror -fdiagnostics-color -flto -fanalyzer -D_FORTIFY_SOURCE=2')
+w.variable(key = 'cflags', value = '-Wall -Wextra -Werror -fdiagnostics-color -flto -D_FORTIFY_SOURCE=2')
 
 if args.ldflags:
     w.comment('these are overriden below because we were generated with --ldflags=' + args.ldflags)

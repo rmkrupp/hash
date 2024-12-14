@@ -92,7 +92,7 @@ constexpr size_t hash_iterations_growth_multiplier_divider = 1024;
  * *technically, it's sometimes 13 or 14, which in all observed cases resulted
  * in <5 re-allocations--not a number worth worrying about.
  */
-[[maybe_unused]] constexpr size_t hash_prealloc_edges = HASH_PREALLOC_EDGES;
+constexpr size_t hash_prealloc_edges = HASH_PREALLOC_EDGES;
 
 /*
  * TYPES
