@@ -46,54 +46,82 @@ int main(int argc, char ** argv)
 
     struct hash_inputs_statistics hash_inputs_statistics;
     hash_inputs_get_statistics(hash_inputs, &hash_inputs_statistics);
-    printf("[instats] n_growths = %zu\n", hash_inputs_statistics.n_growths);
-    printf("[instats] capacity = %zu\n", hash_inputs_statistics.capacity);
+    //printf("[instats] n_growths = %zu\n", hash_inputs_statistics.n_growths);
+    //printf("[instats] capacity = %zu\n", hash_inputs_statistics.capacity);
 
-    struct hash * hash = hash_create(hash_inputs);
-    hash_inputs_destroy(hash_inputs);
+    //for (size_t i = 0; i < 1; i++) {
+        struct hash * hash = hash_create(hash_inputs);
+        hash_inputs_destroy(hash_inputs);
 
-    if (!hash) {
-        printf("hash is null\n");
-        return 1;
+        if (!hash) {
+            printf("hash is null\n");
+            return 1;
+        }
+        printf("hash created\n");
+        //hash_inputs = hash_recycle_inputs(hash);
+    //}
+    //hash_inputs_destroy(hash_inputs);
+
+    size_t okay = 0;
+    f = fopen("keys-in", "r");
+    buffer = malloc(1024);
+    while (fgets(buffer, 1024, f)) {
+        size_t n = strlen(buffer);
+        buffer[n - 1] = '\0';
+        for (size_t i = 0; i < 1; i++) {
+            const struct hash_lookup_result * result = hash_lookup(hash, buffer, n - 1);
+            if (result) {
+                okay++;
+            }
+        }
     }
+    fclose(f);
+    free(buffer);
 
+    printf("%zu\n", okay);
+
+    hash_destroy(hash);
+    /*
     struct hash_statistics statistics;
     hash_get_statistics(hash, &statistics);
 
-    printf("key_length_max = %zu\n", statistics.key_length_max);
-    printf("iterations = %zu\n", statistics.iterations);
-    printf("nodes_explored = %zu\n", statistics.nodes_explored);
-    printf("rand_calls = %zu\n", statistics.rand_calls);
-    printf("hashes_calculated = %zu\n", statistics.hashes_calculated);
-    printf("graph_size = %zu\n", statistics.graph_size);
-    printf("vertex_stack_capacity = %zu\n", statistics.vertex_stack_capacity);
-    printf("edges_allocated = %zu\n", statistics.edges_allocated);
-    printf("edges_preallocated = %zu\n", statistics.edges_preallocated);
-    printf("unneeded_edges_allocated = %zu\n",
-            statistics.unneeded_edges_allocated);
-    printf("edge_capacity_min = %zu\n", statistics.edge_capacity_min);
-    printf("edge_capacity_max = %zu\n", statistics.edge_capacity_max);
-    printf("net_memory_allocated = %zu\n", statistics.net_memory_allocated);
-    printf("total_memory_allocated = %zu\n",
-            statistics.total_memory_allocated);
-    printf("reallocs_edges = %zu\n", statistics.reallocs_edges);
-    printf("reallocs_salt = %zu\n", statistics.reallocs_salt);
-    printf("reallocs_stack = %zu\n", statistics.reallocs_stack);
-    printf("reallocs_vertices = %zu\n", statistics.reallocs_vertices);
+    f = fopen("/dev/null", "r");
 
+    fprintf(f, "key_length_max = %zu\n", statistics.key_length_max);
+    fprintf(f, "iterations = %zu\n", statistics.iterations);
+    fprintf(f, "nodes_explored = %zu\n", statistics.nodes_explored);
+    fprintf(f, "rand_calls = %zu\n", statistics.rand_calls);
+    fprintf(f, "hashes_calculated = %zu\n", statistics.hashes_calculated);
+    fprintf(f, "graph_size = %zu\n", statistics.graph_size);
+    fprintf(f, "vertex_stack_capacity = %zu\n", statistics.vertex_stack_capacity);
+    fprintf(f, "edges_allocated = %zu\n", statistics.edges_allocated);
+    fprintf(f, "edges_preallocated = %zu\n", statistics.edges_preallocated);
+    fprintf(f, "unneeded_edges_allocated = %zu\n",
+            statistics.unneeded_edges_allocated);
+    fprintf(f, "edge_capacity_min = %zu\n", statistics.edge_capacity_min);
+    fprintf(f, "edge_capacity_max = %zu\n", statistics.edge_capacity_max);
+    fprintf(f, "net_memory_allocated = %zu\n", statistics.net_memory_allocated);
+    fprintf(f, "total_memory_allocated = %zu\n",
+            statistics.total_memory_allocated);
+    fprintf(f, "reallocs_edges = %zu\n", statistics.reallocs_edges);
+    fprintf(f, "reallocs_salt = %zu\n", statistics.reallocs_salt);
+    fprintf(f, "reallocs_stack = %zu\n", statistics.reallocs_stack);
+    fprintf(f, "reallocs_vertices = %zu\n", statistics.reallocs_vertices);
     const struct hash_lookup_result * result1 = hash_lookup(hash, "mineral", 7);
     if (result1) {
-        printf("%s\n", result1->key);
+        fprintf(f, "%s\n", result1->key);
     } else {
-        printf("result1 is null\n");
+        fprintf(f, "result1 is null\n");
     }
 
     const struct hash_lookup_result * result2 = hash_lookup(hash, "gronk", 5);
     if (result2) {
-        printf("%s\n", result2->key);
+        fprintf(f, "%s\n", result2->key);
     } else {
-        printf("result2 is null\n");
+        fprintf(f, "result2 is null\n");
     }
+    */
 
-    hash_destroy(hash);
+    //hash_destroy(hash);
+    //fclose(f);
 }

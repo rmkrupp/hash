@@ -58,7 +58,7 @@ int main(int argc, char ** argv)
     s[length] = '\0';
     for (size_t i = 0; i < n; i++) {
         for (size_t j = 0; j < length; j++) {
-            s[j] = rand() % 256;
+            s[j] = 'a' + rand() % 26;
             if (s[j] == '\n') s[j] = ' ';
         }
         hash_inputs_add_safe(hash_inputs, s, strlen(s), NULL);
@@ -85,14 +85,16 @@ int main(int argc, char ** argv)
         return 1;
     }
 
-    const struct hash_lookup_result * result1 = hash_lookup(hash, "mineral", 7);
+    const struct hash_lookup_result * result1 =
+        hash_lookup(hash, "mineral", 7);
     if (result1) {
         printf("found result1\n");
     } else {
         printf("result1 is null\n");
     }
 
-    const struct hash_lookup_result * result2 = hash_lookup(hash, "gronk", 5);
+    const struct hash_lookup_result * result2 =
+        hash_lookup(hash, "gronk", 5);
     if (result2) {
         printf("%s\n", result2->key);
     } else {
