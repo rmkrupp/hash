@@ -80,7 +80,7 @@ def exesuffix(root, enabled):
 
 def enable_debug():
     w.variable(key = 'std', value = '-std=gnu23')
-    w.variable(key = 'cflags', value = '$cflags $sanflags -g -Og')
+    w.variable(key = 'cflags', value = '$cflags $sanflags -g3 -Og')
     if not args.force_version:
         w.variable(key = 'version', value = '"$version"-debug')
     else:
@@ -169,7 +169,7 @@ else:
 
 if args.cflags:
     w.comment('these are overriden below because we were generated with --cflags=' + args.cflags)
-w.variable(key = 'cflags', value = '-Wall -Wextra -Werror -fdiagnostics-color -flto')
+w.variable(key = 'cflags', value = '-Wall -Wextra -Werror -fdiagnostics-color -flto -fanalyzer -D_FORTIFY_SOURCE=2')
 
 if args.ldflags:
     w.comment('these are overriden below because we were generated with --ldflags=' + args.ldflags)

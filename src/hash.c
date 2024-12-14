@@ -430,6 +430,7 @@ static bool graph_resolve(struct graph * graph)
                             vertex_stack,
                             sizeof(*vertex_stack) * (vertex_stack_capacity + 1)
                         );
+                    assert(vertex_stack);
                     vertex_stack_capacity += 1;
                     graph->vertex_stack = vertex_stack;
                     graph->vertex_stack_capacity = vertex_stack_capacity;
