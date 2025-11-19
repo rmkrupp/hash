@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # File: configure.py
-# Part of cards <github.com/rmkrupp/hash>
+# Part of hash <github.com/rmkrupp/hash>
 #
-# Copyright (C) 2024 Noah Santer <n.ed.santer@gmail.com>
-# Copyright (C) 2024 Rebecca Krupp <beka.krupp@gmail.com>
+# Copyright (C) 2024-2025 Noah Santer <n.ed.santer@gmail.com>
+# Copyright (C) 2024-2025 Rebecca Krupp <beka.krupp@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ parser.add_argument('--O3', '--o3', action='store_true',
 parser.add_argument('--disable-static-library', action='store_true',
                     help='don\'t build hash.a')
 parser.add_argument('--disable-tool', action='append', default=[],
-                    choices=[],
+                    choices=['test', 'reuse_test'],
                     help='don\'t build a specific tool')
 parser.add_argument('--enable-hash-statistics', action='store_true',
                     help='compile with -DHASH_STATISTICS')
